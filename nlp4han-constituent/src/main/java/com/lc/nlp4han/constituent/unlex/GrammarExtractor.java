@@ -150,7 +150,7 @@ public class GrammarExtractor
 	}
 
 	@SuppressWarnings("unchecked")
-	public void initGrammarExtractor()
+	private void initGrammarExtractor()
 	{
 		dictionary = new HashSet<String>();
 		preterminal = treeBank.getNonterminalTable().getIntValueOfPreterminalArr();
@@ -257,7 +257,7 @@ public class GrammarExtractor
 	}
 
 	// 计算初始文法的概率
-	public void calcInitalRuleScores()
+	private void calcInitalRuleScores()
 	{
 		for (HashMap<BinaryRule, Integer> map : bRuleBySameHeadCount)
 		{
@@ -306,6 +306,7 @@ public class GrammarExtractor
 		System.out.println("训练前树库似然值：" + totalLSS);
 		
 		System.out.println("SMCycle: " + SMCycle);
+		System.out.println("EMIterations: " + EMIterations);
 		System.out.println("startSymbol:" + g.getStartSymbol());
 		for (int i = 0; i < SMCycle; i++)
 		{
@@ -315,13 +316,13 @@ public class GrammarExtractor
 			GrammarSpliter.splitGrammar(g, treeBank);
 			System.out.println("分裂后：\n" + g.toStringAllSymbol());
 			EM(g, treeBank, EMIterations);
-			System.err.println("分裂、EM完成。");
+			System.err.println("分裂EM完成。");
 
 			System.err.println("开始合并。");
 			GrammarMerger.mergeGrammar(g, treeBank, mergeRate, ruleCounter);
 			System.out.println("合并后：\n" + g.toStringAllSymbol());
 			EM(g, treeBank, EMIterations / 2);
-			System.err.println("合并、EM完成。");
+			System.err.println("合并EM完成。");
 
 			SmoothByRuleOfSameChild smoother = new SmoothByRuleOfSameChild(smooth);
 			System.err.println("开始平滑规则。");
@@ -330,13 +331,9 @@ public class GrammarExtractor
 			normalizedPreTermianlRules(g);
 			System.out.println("平滑后：\n" + g.toStringAllSymbol());
 			EM(g, treeBank, EMIterations / 2);
-			System.err.println("平滑、EM完成。");
+			System.err.println("平滑EM完成。");
 		}
-		// if (SMCycle != 0)
-		// {
-		// double[][] subTag2UNKScores = calTag2UNKScores(g);
-		// g.setSubTag2UNKScores(subTag2UNKScores);
-		// }
+
 		System.out.println("经" + SMCycle + "次SM周期后：\n" + g.toStringAllSymbol());
 		return g;
 	}
@@ -344,7 +341,7 @@ public class GrammarExtractor
 	/**
 	 * 将处理后的语法期望最大化，得到新的规则
 	 */
-	public void EM(Grammar g, TreeBank treeBank, int iterations)
+	private void EM(Grammar g, TreeBank treeBank, int iterations)
 	{
 		if (iterations > 0)
 		{
@@ -352,10 +349,10 @@ public class GrammarExtractor
 			treeBank.calcIOScore(g);
 			totalLSS = treeBank.calcLogTreeBankSentenceSocre();
 			System.out.println("EM算法开始前树库的log似然值：" + totalLSS);
+			
 			double t1, t2, t3, t4;
 			for (int i = 0; i < iterations; i++)
 			{
-
 				t1 = System.currentTimeMillis();
 				calcRuleExpectation(g, treeBank);// 重新计算规则的期望， EStep完成。
 
@@ -365,11 +362,12 @@ public class GrammarExtractor
 				t3 = System.currentTimeMillis();
 				treeBank.calcIOScore(g);// 刷新树库上节点内外向概率
 				t4 = System.currentTimeMillis();
-
 				totalLSS = treeBank.calcLogTreeBankSentenceSocre();
+				
 				System.out.println("第" + (i + 1) + "次EM迭代后树库的Log似然值：" + totalLSS + "………………calExpT:" + (t2 - t1) + "ms"
 						+ ",calRuleST:" + (t3 - t2) + "ms" + ",calIOST:" + (t4 - t3) + "ms");
 			}
+			
 			calcRuleExpectation(g, treeBank);
 			System.out.println("EM算法结束。");
 			System.out.println("EM算法结束后树库的log似然值：" + totalLSS);
@@ -377,21 +375,13 @@ public class GrammarExtractor
 
 	}
 
-	public void calcRuleExpectation(Grammar g, TreeBank treeBank)
+	private void calcRuleExpectation(Grammar g, TreeBank treeBank)
 	{
-		// int count = 0;
-		// double start = System.currentTimeMillis();
 		ruleCounter = new RuleCounter();
 		for (AnnotationTreeNode tree : treeBank.getTreeBank())
-		{
 			refreshRuleCountExpectation(g, tree, tree);
-			// if (++count % 100 == 0)
-			// {
-			// double end = System.currentTimeMillis();
-			// System.out.println(count / (end - start) * 1000.0 + "/s");
-			// }
-		}
-		ruleCounter.calSameParentRulesExpectation(g);
+
+		ruleCounter.calcSameParentRulesExpectation(g);
 	}
 
 	/**
@@ -400,7 +390,7 @@ public class GrammarExtractor
 	 * @param g
 	 *            语法
 	 */
-	public void recalculateRuleScore(Grammar g)
+	private void recalculateRuleScore(Grammar g)
 	{
 		double newScore;
 		double denominator;
@@ -474,7 +464,7 @@ public class GrammarExtractor
 		}
 	}
 
-	public double[][] calcTag2UNKScores(Grammar g)
+	private double[][] calcTag2UNKScores(Grammar g)
 	{
 		double[][] subTag2UNKScores = new double[g.getNumSymbol()][];
 		for (int tag = 0; tag < g.getNumSymbol(); tag++)
@@ -602,11 +592,11 @@ public class GrammarExtractor
 		}
 	}
 
-	public void refreshRuleCountExpectation(Grammar g, AnnotationTreeNode root, AnnotationTreeNode tree)
+	private void refreshRuleCountExpectation(Grammar g, AnnotationTreeNode root, AnnotationTreeNode tree)
 	{
-
 		if (tree.getChildren().size() == 0 || tree == null)
 			return;
+		
 		double scalingFactor;
 		Annotation rootLabel = root.getAnnotation();
 		Annotation pLabel = tree.getAnnotation();
@@ -616,7 +606,6 @@ public class GrammarExtractor
 		Double[] pOutS = pLabel.getOuterScores();
 		if (tree.getChildren().size() == 2)
 		{
-
 			AnnotationTreeNode lC = tree.getChildren().get(0);
 			AnnotationTreeNode rC = tree.getChildren().get(1);
 			Annotation lCLabel = lC.getAnnotation();

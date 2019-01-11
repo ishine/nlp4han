@@ -13,7 +13,9 @@ public class NonterminalTable
 {
 	private HashMap<String, Short> str_intMap;// "ROOT" - 0
 	private HashMap<Short, String> int_strMap;
+	
 	private short numInitialSymbol;// 二叉化后得到的所有非终结符个数
+	
 	private ArrayList<Short> intValueOfPreterminalArr;
 	private ArrayList<Short> numSubsymbolArr;
 

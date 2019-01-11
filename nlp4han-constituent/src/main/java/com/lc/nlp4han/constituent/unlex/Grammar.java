@@ -675,6 +675,7 @@ public class Grammar implements GrammarWritable
 		return nonterminalTable.hasPreterminalSymbol(preterminalSymbol);
 	}
 
+	// 非终结符及其分裂后子符号数
 	public String toStringAllSymbol()
 	{
 		StringBuilder str1 = new StringBuilder("预终结符号：");
