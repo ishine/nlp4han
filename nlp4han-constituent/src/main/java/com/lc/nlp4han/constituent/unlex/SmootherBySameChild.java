@@ -5,21 +5,22 @@ package com.lc.nlp4han.constituent.unlex;
  * 
  * @author 王宁
  */
-public class SmoothByRuleOfSameChild extends Smoother
+public class SmootherBySameChild extends Smoother
 {
 	public static int smoothType = 1;
 
-	public SmoothByRuleOfSameChild(double same)
+	public SmootherBySameChild(double same)
 	{
 		super(same);
 
 	}
 
 	@Override
-	public BinaryRule smoothBRule(BinaryRule bRule, short nSubSymP, short nSubSymLC, short nSubSymRC)
+	protected BinaryRule smoothBRule(BinaryRule bRule, short nSubSymP, short nSubSymLC, short nSubSymRC)
 	{
 		if (nSubSymP == 1)
 			return bRule;
+		
 		double[][] scoreAverage = new double[nSubSymLC][];
 		for (short subLC = 0; subLC < nSubSymLC; subLC++)
 		{
@@ -28,65 +29,61 @@ public class SmoothByRuleOfSameChild extends Smoother
 				for (short subP = 0; subP < nSubSymP; subP++)
 				{
 					if (scoreAverage[subLC] == null)
-					{
 						scoreAverage[subLC] = new double[nSubSymRC];
-					}
+
 					scoreAverage[subLC][subRC] += bRule.getScore(subP, subLC, subRC) / nSubSymP;
 				}
 			}
 		}
+		
 		for (short subP = 0; subP < nSubSymP; subP++)
 		{
 			for (short subLC = 0; subLC < nSubSymLC; subLC++)
 			{
 				for (short subRC = 0; subRC < nSubSymRC; subRC++)
-				{
 					bRule.setScore(subP, subLC, subRC,
 							bRule.getScore(subP, subLC, subRC) * same + scoreAverage[subLC][subRC] * diff);
-				}
 			}
 		}
+		
 		return bRule;
 	}
 
 	@Override
-	public UnaryRule smoothURule(UnaryRule uRule, short nSubSymP, short nSubSymC)
+	protected UnaryRule smoothURule(UnaryRule uRule, short nSubSymP, short nSubSymC)
 	{
 		if (nSubSymP == 1)
 			return uRule;
+		
 		double[] scoreAverage = new double[nSubSymC];
 		for (short subC = 0; subC < nSubSymC; subC++)
 		{
 			for (short subP = 0; subP < nSubSymP; subP++)
-			{
 				scoreAverage[subC] += uRule.getScore(subP, subC) / nSubSymP;
-			}
 		}
+		
 		for (short subP = 0; subP < nSubSymP; subP++)
 		{
 			for (short subC = 0; subC < nSubSymC; subC++)
-			{
 				uRule.setScore(subP, subC,
 						uRule.getScore(subP, subC) * (1 - diff * 10) + scoreAverage[subC] * diff * 10);
-			}
 		}
 		return uRule;
 	}
 
 	@Override
-	public PreterminalRule smoothPreRule(PreterminalRule preRule, short nSubSymP)
+	protected PreterminalRule smoothPreRule(PreterminalRule preRule, short nSubSymP)
 	{
 		if (nSubSymP == 1)
 			return preRule;
+		
 		double scoreAverage = 0.0;
 		for (short subP = 0; subP < nSubSymP; subP++)
-		{
 			scoreAverage += preRule.getScore(subP) / nSubSymP;
-		}
+		
 		for (short subP = 0; subP < nSubSymP; subP++)
-		{
 			preRule.setScore(subP, preRule.getScore(subP) * same + scoreAverage * diff);
-		}
+
 		return preRule;
 	}
 }

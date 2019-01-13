@@ -6,7 +6,7 @@ package com.lc.nlp4han.constituent.unlex;
  * 
  * @author 王宁
  */
-public class ScalingTools
+public class ScalingUtils
 {
 	public static double base = Math.exp(100);
 
@@ -19,9 +19,7 @@ public class ScalingTools
 	public static double calcScaleFactor(double logScale)
 	{
 		if (logScale == Integer.MIN_VALUE || logScale == Integer.MAX_VALUE)
-		{
 			return 0.0;
-		}
 
 		return Math.pow(base, logScale);
 	}
@@ -38,44 +36,43 @@ public class ScalingTools
 	public static int scaleArray(int previousScale, Double... scores)
 	{
 		if (previousScale == Integer.MIN_VALUE || previousScale == Integer.MAX_VALUE)
-		{
 			return previousScale;
-		}
+
 		int logScale = 0;// 本次缩放的真实比例的log值
 		double scale = 1.0;// 本次缩放的真实比例
 		double max = Double.NEGATIVE_INFINITY;
 		for (int i = 0; i < scores.length; i++)
 		{
 			if (scores[i] > max)
-			{
 				max = scores[i];
-			}
 		}
+		
 		if (max == Double.POSITIVE_INFINITY)
-		{
 			return 0;
-		}
+
 		if (max == 0)
 			return previousScale;
+		
 		while (max > base)
 		{
 			max /= base;
 			scale *= base;
 			logScale += 1;
 		}
+		
 		while (max > 0.0 && max < 1.0 / base)
 		{
 			max *= base;
 			scale /= base;
 			logScale -= 1;
 		}
+		
 		if (logScale != 0)
 		{
 			for (int i = 0; i < scores.length; i++)
-			{
 				scores[i] /= scale;
-			}
 		}
+		
 		return previousScale + logScale;
 	}
 }

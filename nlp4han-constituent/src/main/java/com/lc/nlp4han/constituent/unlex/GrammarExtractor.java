@@ -324,7 +324,7 @@ public class GrammarExtractor
 			EM(g, treeBank, EMIterations / 2);
 			System.err.println("合并EM完成。");
 
-			SmoothByRuleOfSameChild smoother = new SmoothByRuleOfSameChild(smooth);
+			SmootherBySameChild smoother = new SmootherBySameChild(smooth);
 			System.err.println("开始平滑规则。");
 			smoother.smooth(g);
 			normalizeBAndURule(g);
@@ -396,7 +396,6 @@ public class GrammarExtractor
 		double denominator;
 		for (BinaryRule bRule : g.getbRules())
 		{
-
 			int pNumSub = g.getNumSubSymbol(bRule.getParent());
 			int lCNumSub = g.getNumSubSymbol(bRule.getLeftChild());
 			int rCNumSub = g.getNumSubSymbol(bRule.getRightChild());
@@ -464,34 +463,34 @@ public class GrammarExtractor
 		}
 	}
 
-	private double[][] calcTag2UNKScores(Grammar g)
-	{
-		double[][] subTag2UNKScores = new double[g.getNumSymbol()][];
-		for (int tag = 0; tag < g.getNumSymbol(); tag++)
-		{
-			if (!g.hasPreterminalSymbol((short) tag))
-				continue;
-			subTag2UNKScores[tag] = new double[g.getNumSubSymbol((short) tag)];
-			for (int subT = 0; subT < subTag2UNKScores[tag].length; subT++)
-			{
-				if (ruleCounter.sameTagToUNKCounter.containsKey((short) tag))
-				{
-					double subTagCount = ruleCounter.sameParentRulesCounter.get((short) tag)[subT];
-					double subTagUNKCount = ruleCounter.sameTagToUNKCounter.get((short) tag)[subT];
-					subTag2UNKScores[tag][subT] = subTagUNKCount / subTagCount;
-					System.out.println(g.symbolStrValue((short) tag) + "_" + subT + " " + subTagUNKCount / subTagCount);
-				}
-				else
-				{
-					subTag2UNKScores[tag][subT] = 1;
-					System.out.println(g.symbolStrValue((short) tag) + " 没有出现过UNK.");
-				}
-			}
-		}
-		return subTag2UNKScores;
-	}
+//	private double[][] calcTag2UNKScores(Grammar g)
+//	{
+//		double[][] subTag2UNKScores = new double[g.getNumSymbol()][];
+//		for (int tag = 0; tag < g.getNumSymbol(); tag++)
+//		{
+//			if (!g.hasPreterminalSymbol((short) tag))
+//				continue;
+//			subTag2UNKScores[tag] = new double[g.getNumSubSymbol((short) tag)];
+//			for (int subT = 0; subT < subTag2UNKScores[tag].length; subT++)
+//			{
+//				if (ruleCounter.sameTagToUNKCounter.containsKey((short) tag))
+//				{
+//					double subTagCount = ruleCounter.sameParentRulesCounter.get((short) tag)[subT];
+//					double subTagUNKCount = ruleCounter.sameTagToUNKCounter.get((short) tag)[subT];
+//					subTag2UNKScores[tag][subT] = subTagUNKCount / subTagCount;
+//					System.out.println(g.symbolStrValue((short) tag) + "_" + subT + " " + subTagUNKCount / subTagCount);
+//				}
+//				else
+//				{
+//					subTag2UNKScores[tag][subT] = 1;
+//					System.out.println(g.symbolStrValue((short) tag) + " 没有出现过UNK.");
+//				}
+//			}
+//		}
+//		return subTag2UNKScores;
+//	}
 
-	public static void normalizeBAndURule(Grammar g)
+	private static void normalizeBAndURule(Grammar g)
 	{
 		HashMap<Short, Double[]> sameHeadRuleScoreSum = new HashMap<Short, Double[]>();
 		for (short symbol = 0; symbol < g.getNumSymbol(); symbol++)
@@ -602,6 +601,7 @@ public class GrammarExtractor
 		Annotation pLabel = tree.getAnnotation();
 		short pSymbol = pLabel.getSymbol();
 		short nSubP = g.getNumSubSymbol(pSymbol);
+		
 		double rootIS = rootLabel.getInnerScores()[0];
 		Double[] pOutS = pLabel.getOuterScores();
 		if (tree.getChildren().size() == 2)
@@ -616,6 +616,7 @@ public class GrammarExtractor
 			short nSubRC = g.getNumSubSymbol(rcSymbol);
 			BinaryRule rule = new BinaryRule(pSymbol, lcSymbol, rcSymbol);
 			rule = g.getRule(rule);
+			
 			double[][][] count;
 			if (!ruleCounter.bRuleCounter.containsKey(rule))
 			{
@@ -623,10 +624,9 @@ public class GrammarExtractor
 				ruleCounter.bRuleCounter.put(rule, count);
 			}
 			else
-			{
 				count = ruleCounter.bRuleCounter.get(rule);
-			}
-			scalingFactor = ScalingTools.calcScaleFactor(pLabel.getOuterScale() + lCLabel.getInnerScale()
+
+			scalingFactor = ScalingUtils.calcScaleFactor(pLabel.getOuterScale() + lCLabel.getInnerScale()
 					+ rCLabel.getInnerScale() - rootLabel.getInnerScale());
 			Double[] lCinnerS = lCLabel.getInnerScores();
 			Double[] rCinnerS = rCLabel.getInnerScores();
@@ -640,14 +640,17 @@ public class GrammarExtractor
 					double lCIS = lCinnerS[j];
 					if (lCIS == 0)
 						continue;
+					
 					for (short k = 0; k < nSubRC; k++)
 					{
 						double rCIS = rCinnerS[k];
 						if (rCIS == 0)
 							continue;
+						
 						double rS = rule.getScore(i, j, k);
 						if (rS == 0)
 							continue;
+						
 						count[i][j][k] = count[i][j][k] + (rS * lCIS / rootIS * rCIS * scalingFactor * pOS);
 					}
 				}
@@ -661,6 +664,7 @@ public class GrammarExtractor
 			short nSubC = g.getNumSubSymbol(cSymbol);
 			UnaryRule rule = new UnaryRule(pSymbol, cSymbol);
 			rule = g.getRule(rule);
+			
 			double[][] count;
 			if (!ruleCounter.uRuleCounter.containsKey(rule))
 			{
@@ -668,10 +672,9 @@ public class GrammarExtractor
 				ruleCounter.uRuleCounter.put(rule, count);
 			}
 			else
-			{
 				count = ruleCounter.uRuleCounter.get(rule);
-			}
-			scalingFactor = ScalingTools
+
+			scalingFactor = ScalingUtils
 					.calcScaleFactor(pLabel.getOuterScale() + cLabel.getInnerScale() - rootLabel.getInnerScale());
 			Double[] cInnerS = cLabel.getInnerScores();
 			for (short i = 0; i < nSubP; i++)
@@ -679,14 +682,17 @@ public class GrammarExtractor
 				double pOS = pOutS[i];
 				if (pOS == 0.0)
 					continue;
+				
 				for (short j = 0; j < nSubC; j++)
 				{
 					double cIS = cInnerS[j];
 					if (cIS == 0.0)
 						continue;
+					
 					double rS = rule.getScore(i, j);
 					if (rS == 0.0)
 						continue;
+					
 					count[i][j] = count[i][j] + (rS * cIS / rootIS * scalingFactor * pOS);
 				}
 			}
@@ -695,6 +701,7 @@ public class GrammarExtractor
 		{
 			PreterminalRule rule = new PreterminalRule(pSymbol, tree.getChildren().get(0).getAnnotation().getWord());
 			rule = g.getRule(rule);
+			
 			double[] count;
 			if (!ruleCounter.preRuleCounter.containsKey(rule))
 			{
@@ -702,35 +709,26 @@ public class GrammarExtractor
 				ruleCounter.preRuleCounter.put(rule, count);
 			}
 			else
-			{
 				count = ruleCounter.preRuleCounter.get(rule);
-			}
-			scalingFactor = ScalingTools.calcScaleFactor(pLabel.getOuterScale() - root.getAnnotation().getInnerScale());
+
+			scalingFactor = ScalingUtils.calcScaleFactor(pLabel.getOuterScale() - root.getAnnotation().getInnerScale());
 			double tempCount = 0.0;
 			for (short i = 0; i < nSubP; i++)
 			{
 				double pOS = pOutS[i];
 				if (pOS == 0)
 					continue;
+				
 				double rs = rule.getScore(i);
 				if (rs == 0)
 					continue;
+				
 				tempCount = rs / rootIS * scalingFactor * pOS;
 				count[i] = count[i] + tempCount;
-				// if (g.isRareWord(rule.getWord()))//这句对效率影响非常大，每次去ArrayList中调用contains（）
-				// {
-				// if (!ruleCounter.sameTagToUNKCounter.containsKey(pSymbol))
-				// {
-				// ruleCounter.sameTagToUNKCounter.put(pSymbol, new double[nSubP]);
-				// }
-				// ruleCounter.sameTagToUNKCounter.get(pSymbol)[i] =
-				// ruleCounter.sameTagToUNKCounter.get(pSymbol)[i]
-				// + tempCount;
-				// }
 			}
 		}
 		else if (tree.getChildren().size() > 2)
-			throw new Error("error tree:more than 2 children.");
+			throw new Error("error tree: more than 2 children.");
 
 		for (AnnotationTreeNode child : tree.getChildren())
 			refreshRuleCountExpectation(g, root, child);

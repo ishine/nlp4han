@@ -206,7 +206,7 @@ public class TreeBank
 						}
 						innerScores[i] = innerScores_Ai;
 					}
-					int newScale = ScalingTools.scaleArray(childInnerScale, innerScores);
+					int newScale = ScalingUtils.scaleArray(childInnerScale, innerScores);
 					tree.getAnnotation().setInnerScores(innerScores);
 					tree.getAnnotation().setInnerScale(newScale);
 				}
@@ -241,7 +241,7 @@ public class TreeBank
 						}
 						innerScores[i] = innerScores_Ai;
 					}
-					int newScale = ScalingTools.scaleArray(leftChildInnerScale + rightChildInnerScale, innerScores);
+					int newScale = ScalingUtils.scaleArray(leftChildInnerScale + rightChildInnerScale, innerScores);
 					tree.getAnnotation().setInnerScores(innerScores);
 					tree.getAnnotation().setInnerScale(newScale);
 				}
@@ -307,7 +307,7 @@ public class TreeBank
 						}
 						outerScores[j] = outerScores_Bj;
 					}
-					int newScale = ScalingTools.scaleArray(parentOuterScale, outerScores);
+					int newScale = ScalingUtils.scaleArray(parentOuterScale, outerScores);
 					treeNode.getAnnotation().setOuterScores(outerScores);
 					treeNode.getAnnotation().setOuterScale(newScale);
 				}
@@ -367,7 +367,7 @@ public class TreeBank
 						}
 						outerScores[i] = outerScoreB_i;
 					}
-					int newScale = ScalingTools.scaleArray(parentOuterScale + siblingInnerScale, outerScores);
+					int newScale = ScalingUtils.scaleArray(parentOuterScale + siblingInnerScale, outerScores);
 					treeNode.getAnnotation().setOuterScores(outerScores);
 					treeNode.getAnnotation().setOuterScale(newScale);
 				}
