@@ -17,5 +17,5 @@ public interface AttributeGenerator
 	 *            被提取属性的结构树根节点
 	 * @return 返回提取出的属性
 	 */
-	public MentionAttribute extractAttributes(TreeNode treeNode);
+	public Attribute extractAttributes(TreeNode treeNode);
 }

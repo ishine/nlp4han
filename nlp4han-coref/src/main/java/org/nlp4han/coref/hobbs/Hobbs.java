@@ -7,6 +7,7 @@ import java.util.List;
 import org.nlp4han.coref.AnaphoraResolution;
 import org.nlp4han.coref.AnaphoraResult;
 import org.nlp4han.coref.centering.CenteringBFP;
+import org.nlp4han.coref.sieve.Document;
 
 import com.lc.nlp4han.constituent.Path;
 import com.lc.nlp4han.constituent.TreeNode;
@@ -321,6 +322,13 @@ public class Hobbs implements AnaphoraResolution
 		//String resultStr = resultStr(pronoun, anaphNode);
 		AnaphoraResult result = new AnaphoraResult(pronoun, anaphNode);
 		return result;
+	}
+
+	@Override
+	public List<AnaphoraResult> resolve(Document doc)
+	{
+		List<TreeNode> sentences = doc.getTrees(); 
+		return resolve(sentences);
 	}
 	
 }

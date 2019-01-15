@@ -336,17 +336,20 @@ public class TreeNodeUtil
 	/**
 	 * 获取NP结点的中心词
 	 * 
-	 * @param nPNode
+	 * @param node
 	 * @return
 	 */
-	public static TreeNode getHead(TreeNode nPNode)
+	public static TreeNode getHead(TreeNode node)
 	{
+		if (node.getChildrenNum() == 0)
+			return node;
+		
 		AbstractHeadGenerator headGen = new HeadGeneratorCollins(new HeadRuleSetCTB());
-		HeadTreeNode headTree1 = TreeToHeadTree.treeToHeadTree(nPNode, headGen);
+		HeadTreeNode headTree1 = TreeToHeadTree.treeToHeadTree(node, headGen);
 
 		String headWord = headTree1.getHeadWord();
 
-		List<TreeNode> leaves = getAllLeafNodes(nPNode);
+		List<TreeNode> leaves = getAllLeafNodes(node);
 		TreeNode headNode = getLastNodeWithSpecifiedName(leaves, new String[] { headWord });
 
 		return headNode;

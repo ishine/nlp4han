@@ -9,10 +9,10 @@ import java.util.Set;
  * @author 杨智超
  *
  */
-public class MentionAttribute
+public class Attribute
 {
 
-	public MentionAttribute()
+	public Attribute()
 	{
 
 	}

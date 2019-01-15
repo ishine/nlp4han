@@ -66,17 +66,18 @@ public class KMeans
 		for (int i = 0; i < groups.size(); i++)
 		{
 			double distance = d.getDistance(t, groups.get(i));
-			if (distance < min)
-			{
-				min = distance;
-				index = i;
-			}
-			else if (distance == 0)
+			
+			if (distance-min<0.00001 && distance-min>-0.00001)
 			{
 				if (groups.get(i).size() < groups.get(index).size())
 				{
 					index = i;
 				}
+			}
+			else if (distance < min)
+			{
+				min = distance;
+				index = i;
 			}
 		}
 		return index;

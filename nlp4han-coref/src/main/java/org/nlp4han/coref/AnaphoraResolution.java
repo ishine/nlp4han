@@ -2,6 +2,8 @@ package org.nlp4han.coref;
 
 import java.util.List;
 
+import org.nlp4han.coref.sieve.Document;
+
 import com.lc.nlp4han.constituent.TreeNode;
 
 /**
@@ -27,4 +29,5 @@ public interface AnaphoraResolution
 	 */
 	public AnaphoraResult resolve(List<TreeNode> sentences, TreeNode pronoun);
 	
+	public List<AnaphoraResult> resolve(Document doc);
 }
