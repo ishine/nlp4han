@@ -22,14 +22,19 @@ public class Mention
 	
 	private String grammaticalRole;
 	
+	private Mention antecedent;
+	private String anteString;
+	
 	public Mention()
 	{
 		
 	}
 	
-	public Mention(int sentenceIndex, int headIndex)
+	public Mention(String head, int sentenceIndex, int headIndex)
 	{
-		// TODO Auto-generated method stub
+		this.head = head;
+		this.sentenceIndex = sentenceIndex;
+		this.headIndex = headIndex;
 	}
 	
 	public String getHead()
@@ -135,9 +140,23 @@ public class Mention
 		this.headIndex = TreeNodeUtil.siteOfLeaves(leaf);
 	}
 	
+	public Mention getAntecedent()
+	{
+		return antecedent;
+	}
+
+	public void setAntecedent(Mention antecedent)
+	{
+		this.antecedent = antecedent;
+		this.anteString = antecedent.getHead();
+	}
+
 	public String toString()
 	{
-		return head;
+		if (this.anteString == null)
+			return head;
+		else
+			return head+" (" + this.anteString + ")";
 	}
 
 	@Override

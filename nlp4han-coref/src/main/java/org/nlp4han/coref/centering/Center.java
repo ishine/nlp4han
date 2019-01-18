@@ -18,14 +18,14 @@ public class Center
 	private Mention Cp; // 优选中心（preferred center）
 
 	/**
-	 * 通过会话中的实体集和将其中的代词替换成先行词后的实体集创建会话的Center类
+	 * 通过会话中的提及集和将其中的代词替换成先行词后的提及集创建会话的Center类
 	 * 
 	 * @param mentions
 	 * @param newMentions
 	 */
 	public Center(List<Mention> mentions, List<Mention> newMentions)
 	{// 注意：参数不能为null，当两个参数相等时，为第一句话，Cb为undefined(null) 此处需修改
-		generateCf(newMentions);
+		generateCf(mentions);
 		generateCb(mentions, newMentions);
 		generateCp(mentions, newMentions);
 	}
@@ -78,11 +78,11 @@ public class Center
 	 * 
 	 * @param newMention
 	 */
-	public void generateCf(List<Mention> newMentions)
+	public void generateCf(List<Mention> mentions)
 	{
-		if (newMentions == null)
+		if (mentions == null)
 			throw new RuntimeException("输入不能为null");
-		Cf = newMentions;
+		Cf = mentions;
 	}
 
 	/**
@@ -113,11 +113,17 @@ public class Center
 			{
 				if (isFirst)
 				{
-					strbCf.append(e.getHead());
+					if (e.getAntecedent() == null)
+						strbCf.append(e.getHead());
+					else
+						strbCf.append(e.getAntecedent().getHead());
 					isFirst = false;
 					continue;
 				}
-				strbCf.append(", " + e.getHead());
+				if (e.getAntecedent() == null)
+					strbCf.append(", " + e.getHead());
+				else
+					strbCf.append(", " + e.getAntecedent().getHead());
 			}
 			strbCf.append(")");
 			strCf = strbCf.toString();
@@ -125,9 +131,19 @@ public class Center
 		else
 			strCf = "( )";
 		if (Cb != null)
-			return "[Cb=" + Cb.getHead() + ", Cf=" + strCf + ", Cp=" + Cp.getHead() + "]";
+		{
+			String strCb, strCp;
+			strCb = Cb.getAntecedent()==null ? Cb.getHead() : Cb.getAntecedent().getHead();
+			strCp = Cp.getAntecedent()==null ? Cp.getHead() : Cp.getAntecedent().getHead();
+			
+			return "[Cb=" + strCb + ", Cf=" + strCf + ", Cp=" + strCp + "]";
+		}
 		else
-			return "[Cf=" + strCf + ", Cp=" + Cp.getHead() + "]";
+		{
+			String strCp;
+			strCp = Cp.getAntecedent()==null ? Cp.getHead() : Cp.getAntecedent().getHead();
+			return "[Cf=" + strCf + ", Cp=" + strCp + "]";
+		}
 	}
 
 }
