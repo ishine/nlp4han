@@ -18,26 +18,26 @@ public class TestTreeNodeUtil
 	public void testGetHead()
 	{
 		TreeNode npNode = BracketExpUtil.generateTreeNoTopBracket("[(NP(IP(NP(NN 外商))(VP(VV 投资)))(NP(NN 企业)))]");
-		TreeNode goal = BracketExpUtil.generateTreeNoTopBracket("[(NN 企业)]");
-		TreeNode result = TreeNodeUtil.getHead(npNode, NPHeadRuleSetPTB.getNPRuleSet());
+		TreeNode goal = BracketExpUtil.generateTreeNoTopBracket("[(企业)]");
+		TreeNode result = TreeNodeUtil.getHead(npNode);
 		assertEquals(goal, result);
 		
 		
 		TreeNode npNode2 = BracketExpUtil.generateTreeNoTopBracket("[(NP (NN 改革) (CC 和) (NN 开放))]");
-		TreeNode goal2 = BracketExpUtil.generateTreeNoTopBracket("[(NN 开放)]");
-		TreeNode result2 = TreeNodeUtil.getHead(npNode2, NPHeadRuleSetPTB.getNPRuleSet());
+		TreeNode goal2 = BracketExpUtil.generateTreeNoTopBracket("[(开放)]");
+		TreeNode result2 = TreeNodeUtil.getHead(npNode2);
 		assertEquals(goal2, result2);
 		
 		
 		TreeNode npNode3 = BracketExpUtil.generateTreeNoTopBracket("[(NP (NN 产值)(QP (CD 5亿)(CLP (M 元))))]");
-		TreeNode goal3 = BracketExpUtil.generateTreeNoTopBracket("[(NN 产值)]");
-		TreeNode result3 = TreeNodeUtil.getHead(npNode3, NPHeadRuleSetPTB.getNPRuleSet());
+		TreeNode goal3 = BracketExpUtil.generateTreeNoTopBracket("[(产值)]");
+		TreeNode result3 = TreeNodeUtil.getHead(npNode3);
 		assertEquals(goal3, result3);
 		
 		
 		TreeNode npNode4 = BracketExpUtil.generateTreeNoTopBracket("[(NP(NP (NR 中国))(NP (NN 国民) (NN 经济) (NN 总产值)))]");
-		TreeNode goal4 = BracketExpUtil.generateTreeNoTopBracket("[(NN 总产值)]");
-		TreeNode result4 = TreeNodeUtil.getHead(npNode4, NPHeadRuleSetPTB.getNPRuleSet());
+		TreeNode goal4 = BracketExpUtil.generateTreeNoTopBracket("[(总产值)]");
+		TreeNode result4 = TreeNodeUtil.getHead(npNode4);
 		assertEquals(goal4, result4);
 	}
 	

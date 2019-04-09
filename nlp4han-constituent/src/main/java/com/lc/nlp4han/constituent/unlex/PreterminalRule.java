@@ -1,7 +1,7 @@
 package com.lc.nlp4han.constituent.unlex;
 
 import java.util.HashSet;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.TreeMap;
 
@@ -14,7 +14,7 @@ import java.util.TreeMap;
 public class PreterminalRule extends Rule
 {
 	private String word;
-	private LinkedList<Double> scores = new LinkedList<Double>();
+	private ArrayList<Double> scores = new ArrayList<Double>();
 
 	public PreterminalRule(short parent, String word)
 	{
@@ -40,7 +40,7 @@ public class PreterminalRule extends Rule
 	@Override
 	public void split()
 	{
-		Random random = Grammar.random;
+		Random random = GrammarExtractor.random;
 		boolean randomPerturbation = false;// preRule分裂不添加随机扰动
 		// split father
 		int pNumSubSymbol = scores.size();
@@ -130,14 +130,26 @@ public class PreterminalRule extends Rule
 		this.word = word;
 	}
 
-	public LinkedList<Double> getScores()
+	// public ArrayList<Double> getScores()
+	// {
+	// return scores;
+	// }
+	public void initScores(short numSubP)
 	{
-		return scores;
+		for (short subP = 0; subP < numSubP; subP++)
+		{
+			scores.add(0.0);
+		}
 	}
 
-	public void setScores(LinkedList<Double> scores)
+	public double getScore(short subP)
 	{
-		this.scores = scores;
+		return scores.get(subP);
+	}
+
+	public void setScore(short subP, double score)
+	{
+		scores.set(subP, score);
 	}
 
 	@Override
@@ -160,8 +172,10 @@ public class PreterminalRule extends Rule
 				parentStr = g.symbolStrValue(parent);
 			else
 				parentStr = g.symbolStrValue(parent) + "_" + i;
+			
 			String childStr = word;
 			String str = parentStr + " -> " + childStr + " " + scores.get(i);
+			
 			strs[i] = str;
 		}
 		return strs;
@@ -173,15 +187,15 @@ public class PreterminalRule extends Rule
 		return parentStr + " -> " + word;
 	}
 
-	public String toStringRule(NonterminalTable nonterminalTable, short... labels)
-	{
-		if (labels.length != 1)
-			throw new Error("参数错误。");
-		String parentStr = nonterminalTable.stringValue(parent);
-		String childStr = word;
-		String str = parentStr + "_" + labels[0] + "->" + childStr + " " + scores.get(labels[0]);
-		return str;
-	}
+//	public String toStringRule(NonterminalTable nonterminalTable, short... labels)
+//	{
+//		if (labels.length != 1)
+//			throw new Error("参数错误。");
+//		String parentStr = nonterminalTable.stringValue(parent);
+//		String childStr = word;
+//		String str = parentStr + "_" + labels[0] + "->" + childStr + " " + scores.get(labels[0]);
+//		return str;
+//	}
 
 	public TreeMap<String, Double> getParent_i_ScoceSum(Grammar g)
 	{

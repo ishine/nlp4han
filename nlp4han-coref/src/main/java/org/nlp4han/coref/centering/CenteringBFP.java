@@ -1,19 +1,18 @@
 package org.nlp4han.coref.centering;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 import org.nlp4han.coref.AnaphoraResolution;
+import org.nlp4han.coref.AnaphoraResult;
 import org.nlp4han.coref.hobbs.AttributeFilter;
 import org.nlp4han.coref.hobbs.AttributeGeneratorByDic;
 import org.nlp4han.coref.hobbs.CandidateFilter;
-import org.nlp4han.coref.hobbs.NodeNameFilter;
 import org.nlp4han.coref.hobbs.PNFilter;
+import org.nlp4han.coref.sieve.Document;
+import org.nlp4han.coref.sieve.GrammaticalRoleBasedMentionGenerator;
+import org.nlp4han.coref.sieve.Mention;
 
 import com.lc.nlp4han.constituent.TreeNode;
 import com.lc.nlp4han.constituent.TreeNodeUtil;
@@ -27,7 +26,6 @@ import com.lc.nlp4han.constituent.TreeNodeUtil;
 public class CenteringBFP implements AnaphoraResolution
 {
 	public static String SEPARATOR = "->"; // 指代结果中的分隔符
-	private HashMap<String, List<String>> grammaticalRoleRuleSet = GrammaticalRoleRuleSet.getGrammaticalRoleRuleSet(); // 语法角色规则集
 	private CandidateFilter attributeFilter;
 
 	public CenteringBFP()
@@ -38,44 +36,44 @@ public class CenteringBFP implements AnaphoraResolution
 	/**
 	 * 运行BFP算法
 	 * 
-	 * @param entitiesOfUtterances
-	 *            话语的实体集
+	 * @param mentionsOfUtterances
+	 *            话语的提及集
 	 * @param rootNodesOfUtterances
 	 *            话语的结构树集
-	 * @return 生成消解后，新的实体集
+	 * @return 生成消解后的Mention集合，其中每个Mention中的antecedent为其先行词
 	 */
-	private List<List<Entity>> run(List<List<Entity>> entitiesOfUtterances, List<TreeNode> rootNodesOfUtterances)
+	private List<List<Mention>> run(List<List<Mention>> mentionsOfUtterances, List<TreeNode> rootNodesOfUtterances)
 	{
 		List<Center> centersOfUtterances = new ArrayList<Center>(); // Utterances的Center集合
-		if (entitiesOfUtterances.size() > 1)
+		if (mentionsOfUtterances.size() > 1)
 		{
-			Center ui = generateCenter(entitiesOfUtterances.get(0), null, null, rootNodesOfUtterances.get(0), null);
+			Center ui = generateCenter(mentionsOfUtterances.get(0), null, null, rootNodesOfUtterances.get(0), null);
 			centersOfUtterances.add(ui);
-			for (int i = 1; i < entitiesOfUtterances.size(); i++)
+			for (int i = 1; i < mentionsOfUtterances.size(); i++)
 			{
-				List<Entity> utter = entitiesOfUtterances.get(i);
-				ui = generateCenter(utter, entitiesOfUtterances.get(i-1), ui, rootNodesOfUtterances.get(i), rootNodesOfUtterances.get(i - 1));
+				List<Mention> utter = mentionsOfUtterances.get(i);
+				ui = generateCenter(utter, mentionsOfUtterances.get(i-1), ui, rootNodesOfUtterances.get(i), rootNodesOfUtterances.get(i - 1));
 				centersOfUtterances.add(ui);
 			}
-			return extractEntitySet(centersOfUtterances);
+			return extractMentionSet(centersOfUtterances);
 		}
-		return entitiesOfUtterances;
+		return mentionsOfUtterances;
 	}
 
 	/**
-	 * 实体e是否为代词
+	 * 提及e是否为代词
 	 * 
-	 * @param e
-	 *            待检测实体
+	 * @param mention
+	 *            待检测的提及
 	 * @param root
-	 *            实体e对应结点的根结点
+	 *            提及e对应结点的根结点
 	 * @return
 	 */
-	private boolean isPronoun(Entity e, TreeNode root)
+	private boolean isPronoun(Mention mention, TreeNode root)
 	{
-		if (e == null)
+		if (mention == null)
 			throw new RuntimeException("输入错误");
-		TreeNode node = entity2Node(e, root);
+		TreeNode node = mention2Node(mention, root);
 		TreeNode pnNode = TreeNodeUtil.getFirstNodeUpWithSpecifiedName(node, new String[] { "PN" });
 		if (pnNode != null)
 			return true;
@@ -84,33 +82,32 @@ public class CenteringBFP implements AnaphoraResolution
 	}
 
 	/**
-	 * 从Center列表中抽取对应的Entity集
+	 * 从Center列表中抽取对应的Mention集
 	 * 
 	 * @param centersOfUtterances
 	 * @return
 	 */
-	private List<List<Entity>> extractEntitySet(List<Center> centersOfUtterances)
+	private List<List<Mention>> extractMentionSet(List<Center> centersOfUtterances)
 	{
 		if (centersOfUtterances != null)
 		{
-			List<List<Entity>> result = new ArrayList<List<Entity>>();
+			List<List<Mention>> result = new ArrayList<List<Mention>>();
 			for (int i = 0; i < centersOfUtterances.size(); i++)
 			{
-				result.add(centersOfUtterances.get(i).getCf());
+				List<Mention> tmp = new ArrayList<Mention>();
+				
+				for (Mention m : centersOfUtterances.get(i).getCf())
+				{
+					if (m.getAntecedent() != null)
+					{
+						tmp.add(m);
+					}
+				}
+				result.add(tmp);
 			}
 			return result;
 		}
 		return null;
-	}
-
-	/**
-	 * 设置语法角色规则集
-	 * 
-	 * @param grammaticalRoleRuleSet
-	 */
-	public void setGrammaticalRoleRuleSet(HashMap<String, List<String>> grammaticalRoleRuleSet)
-	{
-		this.grammaticalRoleRuleSet = grammaticalRoleRuleSet;
 	}
 
 	/**
@@ -126,35 +123,35 @@ public class CenteringBFP implements AnaphoraResolution
 	/**
 	 * 生成话语的最优的中心数值（Cb、Cf、Cp）
 	 * 
-	 * @param entitiesOfUi
-	 *            当前会话的实体集
+	 * @param mentionsOfUi
+	 *            当前会话的提及集
 	 * @param centerOfUi_1
-	 *            前句会话的实体中心
+	 *            前句会话的提及中心
 	 * @param rootOfUi
 	 *            当前会话的根节点
 	 * @param rootOfUi_1
 	 *            前句会话的根节点
 	 * @return
 	 */
-	public Center generateCenter(List<Entity> entitiesOfUi, List<Entity> entitiesOfUi_1, Center centerOfUi_1, TreeNode rootOfUi, TreeNode rootOfUi_1)
+	public Center generateCenter(List<Mention> mentionsOfUi, List<Mention> mentionsOfUi_1, Center centerOfUi_1, TreeNode rootOfUi, TreeNode rootOfUi_1)
 	{
-		if (entitiesOfUi == null)
+		if (mentionsOfUi == null)
 		{
 			throw new RuntimeException("输入错误！");
 		}
 		if (centerOfUi_1 != null)
 		{
-			List<Entity> pronounEntities = getPronounEntities(entitiesOfUi, rootOfUi);
-			if (pronounEntities.isEmpty())
-				return new Center(entitiesOfUi, entitiesOfUi);
-			List<List<Entity>> anaphorEntitiesList = generateAllAnaphorEntities(pronounEntities, entitiesOfUi_1, centerOfUi_1, rootOfUi,
+			List<Mention> pronounMentions = getPronounMentions(mentionsOfUi, rootOfUi);
+			if (pronounMentions.isEmpty())
+				return new Center(mentionsOfUi, mentionsOfUi);
+			List<List<Mention>> anaphorMentionsList = generateAllAnaphorMentions(pronounMentions, mentionsOfUi_1, centerOfUi_1, rootOfUi,
 					rootOfUi_1);
 			List<Center> candidates = new ArrayList<Center>();
 			List<String> transitions = new ArrayList<String>();
-			for (int i = 0; i < anaphorEntitiesList.size(); i++)
+			for (int i = 0; i < anaphorMentionsList.size(); i++)
 			{
-				List<Entity> newEntitiesOfUi = replaceEntity(entitiesOfUi, pronounEntities, anaphorEntitiesList.get(i));
-				Center c = new Center(entitiesOfUi, newEntitiesOfUi); // 注意：第一个句子的时候，两个参数应该相同，Cb的值应为null
+				List<Mention> newMentionsOfUi = replaceMention(mentionsOfUi, pronounMentions, anaphorMentionsList.get(i));
+				Center c = new Center(mentionsOfUi, newMentionsOfUi); // 注意：第一个句子的时候，两个参数应该相同，Cb的值应为null
 				candidates.add(c);
 				String transition = getTransition(c, centerOfUi_1);
 				transitions.add(transition);
@@ -163,61 +160,71 @@ public class CenteringBFP implements AnaphoraResolution
 			{
 				int index = bestTransition(transitions);
 				if (index > -1)
+				{
+					for (int i=0 ; i<pronounMentions.size() ; i++)
+					{
+						Mention temp = anaphorMentionsList.get(index).get(i);
+						if (temp.getAntecedent() == null)
+							pronounMentions.get(i).setAntecedent(temp);
+						else
+							pronounMentions.get(i).setAntecedent(temp.getAntecedent());
+					}
 					return candidates.get(index);
+				}
 			}
 			return null;
 
 		}
 		else
 		{// 两个参数相同，表示无指代，也表示第一个句子
-			return new Center(entitiesOfUi, entitiesOfUi);
+			return new Center(mentionsOfUi, mentionsOfUi);
 		}
 	}
 
 	/**
-	 * 将实体集中的代词实体替换成回指的实体
+	 * 将提及集中的代词提及替换成回指的提及
 	 * 
-	 * @param entitiesOfUi
-	 * @param pronounEntitiesOfUi
-	 * @param anaphorEntitiesOfUi_1
+	 * @param mentionsOfUi
+	 * @param pronounMentionsOfUi
+	 * @param anaphorMentionsOfUi_1
 	 * @return
 	 */
-	private List<Entity> replaceEntity(List<Entity> entitiesOfUi, List<Entity> pronounEntitiesOfUi,
-			List<Entity> anaphorEntitiesOfUi_1)
+	private List<Mention> replaceMention(List<Mention> mentionsOfUi, List<Mention> pronounMentionsOfUi,
+			List<Mention> anaphorMentionsOfUi_1)
 	{
-		if (entitiesOfUi == null || pronounEntitiesOfUi == null || anaphorEntitiesOfUi_1 == null)
+		if (mentionsOfUi == null || pronounMentionsOfUi == null || anaphorMentionsOfUi_1 == null)
 		{
 			throw new RuntimeException("输入错误");
 		}
-		List<Entity> result = new ArrayList<Entity>();
+		List<Mention> result = new ArrayList<Mention>();
 		int index;
-		for (int i = 0; i < entitiesOfUi.size(); i++)
+		for (int i = 0; i < mentionsOfUi.size(); i++)
 		{
-			if ((index = pronounEntitiesOfUi.indexOf(entitiesOfUi.get(i))) != -1)
+			if ((index = pronounMentionsOfUi.indexOf(mentionsOfUi.get(i))) != -1)
 			{
-				result.add(anaphorEntitiesOfUi_1.get(index));
+				result.add(anaphorMentionsOfUi_1.get(index));
 			}
 			else
-				result.add(entitiesOfUi.get(i));
+				result.add(mentionsOfUi.get(i));
 		}
 		return result;
 	}
 
 	/**
-	 * 得到实体集中的代词实体
+	 * 得到提及集中的代词提及
 	 * 
-	 * @param entitiesOfUi
+	 * @param mentionsOfUi
 	 * @param rootOfUi
 	 * @return
 	 */
-	private List<Entity> getPronounEntities(List<Entity> entitiesOfUi, TreeNode rootOfUi)
+	private List<Mention> getPronounMentions(List<Mention> mentionsOfUi, TreeNode rootOfUi)
 	{
-		if (entitiesOfUi != null)
+		if (mentionsOfUi != null)
 		{
-			List<Entity> result = new ArrayList<Entity>();
-			if (entitiesOfUi.size() > 0)
+			List<Mention> result = new ArrayList<Mention>();
+			if (mentionsOfUi.size() > 0)
 			{
-				for (Entity e : entitiesOfUi)
+				for (Mention e : mentionsOfUi)
 				{
 					if (isPronoun(e, rootOfUi))
 					{
@@ -262,53 +269,53 @@ public class CenteringBFP implements AnaphoraResolution
 	}
 
 	/**
-	 * 生成所有的回指实体集，用以确定Cb
+	 * 生成所有的回指提及集，用以确定Cb
 	 */
-	private List<List<Entity>> generateAllAnaphorEntities(List<Entity> pronounEntitiesOfUi, List<Entity> entitiesOfUi_1, Center centerOfUi_1,
+	private List<List<Mention>> generateAllAnaphorMentions(List<Mention> pronounMentionsOfUi, List<Mention> mentionsOfUi_1, Center centerOfUi_1,
 			TreeNode rootOfUi, TreeNode rootOfUi_1)
 	{
-		if (pronounEntitiesOfUi == null || centerOfUi_1 == null)
+		if (pronounMentionsOfUi == null || centerOfUi_1 == null)
 		{
 			throw new RuntimeException("输入错误");
 		}
-		if (pronounEntitiesOfUi.size() < 1)
+		if (pronounMentionsOfUi.size() < 1)
 		{
-			return new ArrayList<List<Entity>>();
+			return new ArrayList<List<Mention>>();
 		}
-		List<List<Entity>> result;
-		List<Entity> newEntitiesOfUi_1 = centerOfUi_1.getCf();
-		List<List<Entity>> tmp = new ArrayList<List<Entity>>();
+		List<List<Mention>> result;
+		List<Mention> newMentionsOfUi_1 = centerOfUi_1.getCf();
+		List<List<Mention>> tmp = new ArrayList<List<Mention>>();
 
-		for (int i = 0; i < pronounEntitiesOfUi.size(); i++)
+		for (int i = 0; i < pronounMentionsOfUi.size(); i++)
 		{
-			List<Entity> candidates = getMatchingEntities(newEntitiesOfUi_1, entitiesOfUi_1, pronounEntitiesOfUi.get(i), attributeFilter,
+			List<Mention> candidates = getMatchingMentions(newMentionsOfUi_1, mentionsOfUi_1, pronounMentionsOfUi.get(i), attributeFilter,
 					rootOfUi, rootOfUi_1);
 			tmp.add(candidates);
 		}
 		if (tmp.size() < 1)
-			return new ArrayList<List<Entity>>();
+			return new ArrayList<List<Mention>>();
 		result = transform(tmp);
 		return result;
 	}
 
-	private static List<List<Entity>> transform(List<List<Entity>> entitiesList)
+	private static List<List<Mention>> transform(List<List<Mention>> mentionsList)
 	{
-		if (entitiesList == null)
+		if (mentionsList == null)
 			throw new RuntimeException("输入错误");
-		List<List<Entity>> result = new ArrayList<List<Entity>>();
-		List<Integer> indexQueue = new ArrayList<Integer>(); // 记录entitiesList中每一组List<Entity>被访问的位置
+		List<List<Mention>> result = new ArrayList<List<Mention>>();
+		List<Integer> indexQueue = new ArrayList<Integer>(); // 记录mentionsList中每一组List<Mention>被访问的位置
 
-		for (int i = 0; i < entitiesList.size(); i++)
+		for (int i = 0; i < mentionsList.size(); i++)
 		{// 初始化 indexQueue
 			indexQueue.add(0);
 		}
 
-		while (indexQueue.get(indexQueue.size() - 1) < entitiesList.get(indexQueue.size() - 1).size())
+		while (indexQueue.get(indexQueue.size() - 1) < mentionsList.get(indexQueue.size() - 1).size())
 		{
-			List<Entity> list = new ArrayList<Entity>();
+			List<Mention> list = new ArrayList<Mention>();
 			for (int i = 0; i < indexQueue.size(); i++)
 			{
-				Entity e = entitiesList.get(i).get(indexQueue.get(i));
+				Mention e = mentionsList.get(i).get(indexQueue.get(i));
 				list.add(e);
 			}
 			result.add(list);
@@ -316,7 +323,7 @@ public class CenteringBFP implements AnaphoraResolution
 
 			for (int i = 0; i < indexQueue.size() - 1; i++)
 			{
-				if (indexQueue.get(i) >= entitiesList.get(i).size())
+				if (indexQueue.get(i) >= mentionsList.get(i).size())
 				{
 					indexQueue.set(i, 0);
 					indexQueue.set(i + 1, indexQueue.get(i + 1) + 1);
@@ -330,20 +337,20 @@ public class CenteringBFP implements AnaphoraResolution
 	}
 
 	/**
-	 * entity为Ui中的代词实体，在Ui-1的实体集entitiesOfUi_1中找出属性相容的实体
+	 * mention为Ui中的代词提及，在Ui-1的提及集mentionsOfUi_1中找出属性相容的提及
 	 * filter为属性过滤器，rootOfUi为Ui的结构树根结点，rootOfUi_1为Ui-1的结构树根结点
 	 */
-	private static List<Entity> getMatchingEntities(List<Entity> newEntitiesOfUi_1, List<Entity> entitiesOfUi_1, Entity entity, CandidateFilter filter,
+	private static List<Mention> getMatchingMentions(List<Mention> newMentionsOfUi_1, List<Mention> mentionsOfUi_1, Mention mention, CandidateFilter filter,
 			TreeNode rootOfUi, TreeNode rootOfUi_1)
 	{
-		List<Entity> result = new ArrayList<Entity>();
-		TreeNode leaf = entity2Node(entity, rootOfUi);
+		List<Mention> result = new ArrayList<Mention>();
+		TreeNode leaf = mention2Node(mention, rootOfUi);
 		TreeNode node = TreeNodeUtil.getFirstNodeUpWithSpecifiedName(leaf, new String[] { "NP", "PN" });
 		List<TreeNode> nodes = new LinkedList<TreeNode>();
 		List<TreeNode> nodes_copy = new LinkedList<TreeNode>();
-		for (int i = 0; i < entitiesOfUi_1.size(); i++)
+		for (int i = 0; i < mentionsOfUi_1.size(); i++)
 		{
-			leaf = entity2Node(entitiesOfUi_1.get(i), rootOfUi_1);
+			leaf = mention2Node(mentionsOfUi_1.get(i), rootOfUi_1);
 			TreeNode tmp = TreeNodeUtil.getFirstNodeUpWithSpecifiedName(leaf, new String[] { "NP", "PN" });
 			nodes.add(tmp);
 			nodes_copy.add(tmp);
@@ -352,8 +359,8 @@ public class CenteringBFP implements AnaphoraResolution
 		if (filter != null)
 		{
 			filter.setReferenceConditions(node);
-			filter.setFilteredNodes(nodes_copy);
-			filter.filter();
+//			filter.setFilteredNodes(nodes_copy);
+			filter.filter(nodes_copy);
 		}
 
 		for (TreeNode n : nodes_copy)
@@ -363,7 +370,7 @@ public class CenteringBFP implements AnaphoraResolution
 			else
 			{
 				int index = nodes.indexOf(n);
-				result.add(newEntitiesOfUi_1.get(index));
+				result.add(newMentionsOfUi_1.get(index));
 			}
 		}
 
@@ -388,13 +395,13 @@ public class CenteringBFP implements AnaphoraResolution
 	}
 
 	/**
-	 * 在结构树root中找出实体entity对应的结点
+	 * 在结构树root中找出提及mention对应的结点
 	 */
-	private static TreeNode entity2Node(Entity entity, TreeNode root)
+	private static TreeNode mention2Node(Mention mention, TreeNode root)
 	{
-		if (entity == null && root == null)
+		if (mention == null && root == null)
 			throw new RuntimeException("输入错误");
-		TreeNode result = TreeNodeUtil.string2Node(entity.getEntityName(), entity.getSite(), root);
+		TreeNode result = TreeNodeUtil.string2Node(mention.getHead(), mention.getHeadIndex(), root);
 		return result;
 	}
 
@@ -407,20 +414,31 @@ public class CenteringBFP implements AnaphoraResolution
 	 */
 	public static String getTransition(Center centerOfUi, Center centerOfUi_1)
 	{// 注意：若Ui-1为首句，其Cb为undefined(null)
+		Mention cbOfUi = null;
+		Mention cpOfUi = null;
+		Mention cbOfUi_1 = null;
+		
+		cbOfUi = centerOfUi.getCb().getAntecedent() == null ? centerOfUi.getCb() : centerOfUi.getCb().getAntecedent();
+		cpOfUi = centerOfUi.getCp().getAntecedent() == null ? centerOfUi.getCp() : centerOfUi.getCp().getAntecedent();
+		
+		if (centerOfUi_1.getCb() != null)
+			cbOfUi_1 = centerOfUi_1.getCb().getAntecedent() == null ? centerOfUi_1.getCb() : centerOfUi_1.getCb().getAntecedent();
+		
+		
 		if (centerOfUi != null && centerOfUi_1 != null)
 		{
-			if (centerOfUi.getCb().equals(centerOfUi.getCp()))
+			if (cbOfUi.equals(cpOfUi))
 			{
-				if (centerOfUi.getCb().equals(centerOfUi_1.getCb()) || centerOfUi_1.getCb() == null)
+				if (cbOfUi.equals(cbOfUi_1) || cbOfUi_1 == null)
 					return "Continue";
-				if (!centerOfUi.getCb().equals(centerOfUi_1.getCb()))
+				if (!cbOfUi.equals(cbOfUi_1))
 					return "Smooth-Shift";
 			}
 			else
 			{
-				if (centerOfUi.getCb().equals(centerOfUi_1.getCb()) || centerOfUi_1.getCb() == null)
+				if (cbOfUi.equals(cbOfUi_1) || cbOfUi_1 == null)
 					return "Retain";
-				if (!centerOfUi.getCb().equals(centerOfUi_1.getCb()))
+				if (!cbOfUi.equals(cbOfUi_1))
 					return "Rough-Shift";
 			}
 		}
@@ -428,117 +446,104 @@ public class CenteringBFP implements AnaphoraResolution
 	}
 
 	/**
-	 * 根据会话的实体集与将其中的代词替换成先行词的实体后的实体集，得出以字符串形式表示的指代消解结果
+	 * 根据会话的提及集，解析出以字符串形式表示的指代消解结果
 	 * 
-	 * @param oldEntitiesSet
-	 * @param newEntitiesSet
+	 * @param oldMentionsSet
+	 * @param mentionsSet
 	 * @return
 	 */
-	public static List<String> analysisResult(List<List<Entity>> oldEntitiesSet, List<List<Entity>> newEntitiesSet)
+	public static List<String> analysisResult(List<List<Mention>> mentionsSet)
 	{
-		if (newEntitiesSet == null || oldEntitiesSet == null || newEntitiesSet.size() != oldEntitiesSet.size())
+		if (mentionsSet == null)
 			throw new RuntimeException("输入错误");
-		if (newEntitiesSet.size() < 2)
+		if (mentionsSet.size() < 2)
 			return new ArrayList<String>();
 		List<String> result = new ArrayList<String>();
-		for (int i = 1; i < newEntitiesSet.size(); i++)
+		for (int i = 1; i < mentionsSet.size(); i++)
 		{
-			for (int j = 0; j < newEntitiesSet.get(i).size(); j++)
+			for (int j = 0; j < mentionsSet.get(i).size(); j++)
 			{
-				if (!newEntitiesSet.get(i).get(j).equals(oldEntitiesSet.get(i).get(j)))
-				{
-					String word1 = oldEntitiesSet.get(i).get(j).getEntityName();
-					String size1 = "(" + (i + 1) + "-" + (oldEntitiesSet.get(i).get(j).getSite() + 1) + ")";
-					String word2;
-					String size2;
-					int index = oldEntitiesSet.get(i - 1).indexOf(newEntitiesSet.get(i).get(j));
-					Entity e = oldEntitiesSet.get(i - 1).get(index);
-					word2 = e.getEntityName();
-					size2 = "(" + i + "-" + (e.getSite() + 1) + ")";
-					String str = word1 + size1 + SEPARATOR + word2 + size2;
+				Mention temp = mentionsSet.get(i).get(j);
+				String word1 = temp.getHead();
+				String size1 = "(" + (i + 1) + "-" + (temp.getHeadIndex() + 1) + ")";
+				String word2 = temp.getAntecedent().getHead();
+				String size2 = "(" + (temp.getAntecedent().getSentenceIndex()+1) + "-" + (temp.getAntecedent().getHeadIndex() + 1) + ")";
+				String str = word1 + size1 + SEPARATOR + word2 + size2;
 
 					result.add(str);
-				}
 			}
 		}
 		return result;
 	}
 
-	public static Map<TreeNode, TreeNode> analysisResult(List<List<Entity>> oldEntitiesSet,
-			List<List<Entity>> newEntitiesSet, List<TreeNode> rootNodesOfUtterances)
+	public static List<AnaphoraResult> analysisResult(List<List<Mention>> newMentionsSet, List<TreeNode> rootNodesOfUtterances)
 	{
-		if (newEntitiesSet == null || oldEntitiesSet == null || newEntitiesSet.size() != oldEntitiesSet.size())
+		if (newMentionsSet == null)
 			throw new RuntimeException("输入错误");
-		if (newEntitiesSet.size() < 2)
-			return new HashMap<TreeNode, TreeNode>();
-		Map<TreeNode, TreeNode> result = new HashMap<TreeNode, TreeNode>();
-		for (int i = 1; i < newEntitiesSet.size(); i++)
+		if (newMentionsSet.size() < 2)
+			return new ArrayList<AnaphoraResult>();
+		List<AnaphoraResult> result = new ArrayList<AnaphoraResult>();
+		for (int i = 0; i < newMentionsSet.size(); i++)
 		{
-			for (int j = 0; j < newEntitiesSet.get(i).size(); j++)
+			for (int j = 0; j < newMentionsSet.get(i).size(); j++)
 			{
-				if (!newEntitiesSet.get(i).get(j).equals(oldEntitiesSet.get(i).get(j)))
-				{
-					TreeNode root1 = rootNodesOfUtterances.get(i);
-					TreeNode ponoun = TreeNodeUtil.getAllLeafNodes(root1).get(oldEntitiesSet.get(i).get(j).getSite());
-					TreeNode antecedent = null;
-					int k=i-1;
-					int index;
-					while (k>-1)
-					{
-						if ((index = oldEntitiesSet.get(k).indexOf(newEntitiesSet.get(i).get(j))) > -1)
-						{
-							Entity e = oldEntitiesSet.get(k).get(index);
-							TreeNode root2 = rootNodesOfUtterances.get(k);
-							antecedent = TreeNodeUtil.getAllLeafNodes(root2).get(e.getSite());
-							break;
-						}
-						else
-						{
-							k--;
-						}
-					}
-
-					result.put(ponoun, antecedent);
-				}
+				Mention temp = newMentionsSet.get(i).get(j);
+				
+				TreeNode root1 = rootNodesOfUtterances.get(i);
+				TreeNode ponoun = TreeNodeUtil.getAllLeafNodes(root1).get(temp.getHeadIndex());
+				
+				TreeNode root2 = rootNodesOfUtterances.get(temp.getAntecedent().getSentenceIndex());
+				TreeNode antecedent = TreeNodeUtil.getAllLeafNodes(root2).get(temp.getAntecedent().getHeadIndex());
+				
+				AnaphoraResult tmp = new AnaphoraResult(ponoun, antecedent);
+				result.add(tmp);
 			}
 		}
 		return result;
 	}
 
 	@Override
-	public Map<TreeNode, TreeNode> resolve(List<TreeNode> sentences)
+	public List<AnaphoraResult> resolve(List<TreeNode> sentences)
 	{
-		List<List<Entity>> eou = new ArrayList<List<Entity>>();
-
 		if (attributeFilter == null)
 		{
-			AttributeFilter af = new AttributeFilter(new PNFilter(new NodeNameFilter())); // 组合过滤器
+			AttributeFilter af = new AttributeFilter(new PNFilter()); // 组合过滤器
 
 			af.setAttributeGenerator(new AttributeGeneratorByDic()); // 装入属性生成器
 			attributeFilter = af;
 		}
+		
+		Document doc = new Document();
+		doc.setTrees(sentences);
+		
+		GrammaticalRoleBasedMentionGenerator grbmg = new GrammaticalRoleBasedMentionGenerator();
+		doc = grbmg.generate(doc);
+		
+		List<List<Mention>> eou = doc.getMentionsBySentences();
 
-		for (int i = 0; i < sentences.size(); i++)
-		{
-			eou.add(Entity.sort(Entity.entities(sentences.get(i), grammaticalRoleRuleSet)));
-		}
-
-		List<List<Entity>> newEntities = run(eou, sentences);
-		Map<TreeNode, TreeNode> result = analysisResult(eou, newEntities, sentences);
+		List<List<Mention>> newMentions = run(eou, sentences);
+		List<AnaphoraResult> result = analysisResult(newMentions, sentences);
 		return result;
 	}
 
 	@Override
-	public TreeNode resolve(List<TreeNode> sentences, TreeNode pronoun)
+	public AnaphoraResult resolve(List<TreeNode> sentences, TreeNode pronoun)
 	{
-		Map<TreeNode, TreeNode> allResults = resolve(sentences);
-		Set<Entry<TreeNode, TreeNode>> enteries = allResults.entrySet();
-		for (Entry<TreeNode, TreeNode> e : enteries)
+		List<AnaphoraResult> allResults = resolve(sentences);
+		
+		for (AnaphoraResult ar : allResults)
 		{
-			if (e.getKey().equals(TreeNodeUtil.getAllLeafNodes(pronoun).get(0)))
-				return e.getValue();
+			if (ar.getPronNode().equals(TreeNodeUtil.getAllLeafNodes(pronoun).get(0)))
+				return ar;
 		}
 		return null;
+	}
+
+	@Override
+	public List<AnaphoraResult> resolve(Document doc)
+	{
+		List<TreeNode> sentences = doc.getTrees();
+		return resolve(sentences);
 	}
 
 }

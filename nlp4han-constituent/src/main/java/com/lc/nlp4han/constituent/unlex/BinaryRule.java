@@ -1,7 +1,7 @@
 package com.lc.nlp4han.constituent.unlex;
 
+import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Random;
 import java.util.TreeMap;
 
@@ -14,7 +14,7 @@ public class BinaryRule extends Rule
 {
 	private short leftChild;
 	private short rightChild;
-	private LinkedList<LinkedList<LinkedList<Double>>> scores = new LinkedList<LinkedList<LinkedList<Double>>>();// 保存规则例如A_i
+	private ArrayList<ArrayList<ArrayList<Double>>> scores = new ArrayList<ArrayList<ArrayList<Double>>>();// 保存规则例如A_i
 																													// ->
 	// B_j
 
@@ -35,10 +35,10 @@ public class BinaryRule extends Rule
 		this.rightChild = rChild;
 		for (int i = 0; i < nSubP; i++)
 		{
-			LinkedList<LinkedList<Double>> LR = new LinkedList<LinkedList<Double>>();
+			ArrayList<ArrayList<Double>> LR = new ArrayList<ArrayList<Double>>();
 			for (int j = 0; j < nSubLC; j++)
 			{
-				LinkedList<Double> R = new LinkedList<Double>();
+				ArrayList<Double> R = new ArrayList<Double>();
 				for (int k = 0; k < nSubRC; k++)
 				{
 					R.add(0.0);
@@ -57,7 +57,7 @@ public class BinaryRule extends Rule
 	@Override
 	public void split()
 	{
-		Random random = Grammar.random;
+		Random random = GrammarExtractor.random;
 		boolean randomPerturbation = true;
 		// split rightChild
 		int pNumSubSymbol = scores.size();
@@ -81,7 +81,7 @@ public class BinaryRule extends Rule
 			for (int j = lCNumSubsymbol - 1; j >= 0; j--)
 			{
 				scores.get(i).get(j).replaceAll(e -> e / 2);
-				LinkedList<Double> sameRC = new LinkedList<Double>(scores.get(i).get(j));
+				ArrayList<Double> sameRC = new ArrayList<Double>(scores.get(i).get(j));
 				scores.get(i).add(j + 1, sameRC);
 			}
 
@@ -89,10 +89,10 @@ public class BinaryRule extends Rule
 		if (parent != 0)
 			for (int i = pNumSubSymbol - 1; i >= 0; i--)
 			{
-				LinkedList<LinkedList<Double>> sameFather = new LinkedList<LinkedList<Double>>();
+				ArrayList<ArrayList<Double>> sameFather = new ArrayList<ArrayList<Double>>();
 				for (int j = 0; j < scores.get(i).size(); j++)
 				{
-					LinkedList<Double> sameLRC = new LinkedList<Double>(scores.get(i).get(j));
+					ArrayList<Double> sameLRC = new ArrayList<Double>(scores.get(i).get(j));
 					sameFather.add(sameLRC);
 				}
 				scores.add(i + 1, sameFather);
@@ -188,8 +188,8 @@ public class BinaryRule extends Rule
 				int indexLC = symbolToMerge[leftChild][indexLCToMerge];
 				for (int indexP = 0; indexP < scores.size(); indexP++)
 				{
-					LinkedList<Double> scoresP2LC1 = scores.get(indexP).get(indexLC);
-					LinkedList<Double> scoresP2LC2 = scores.get(indexP).get(indexLC + 1);
+					ArrayList<Double> scoresP2LC1 = scores.get(indexP).get(indexLC);
+					ArrayList<Double> scoresP2LC2 = scores.get(indexP).get(indexLC + 1);
 					for (int indexRC = 0; indexRC < scoresP2LC1.size(); indexRC++)
 					{
 						scoresP2LC1.set(indexRC, scoresP2LC1.get(indexRC) + scoresP2LC2.get(indexRC));
@@ -206,12 +206,12 @@ public class BinaryRule extends Rule
 			for (int indexPToMerge = nPToMerge - 1; indexPToMerge >= 0; indexPToMerge--)
 			{
 				int indexP = symbolToMerge[parent][indexPToMerge];
-				LinkedList<LinkedList<Double>> scoresP1 = scores.get(indexP);
-				LinkedList<LinkedList<Double>> scoresP2 = scores.get(indexP + 1);
+				ArrayList<ArrayList<Double>> scoresP1 = scores.get(indexP);
+				ArrayList<ArrayList<Double>> scoresP2 = scores.get(indexP + 1);
 				for (int indexLC = 0; indexLC < scoresP1.size(); indexLC++)
 				{
-					LinkedList<Double> scoresP1ToLC = scoresP1.get(indexLC);
-					LinkedList<Double> scoresP2ToLC = scoresP2.get(indexLC);
+					ArrayList<Double> scoresP1ToLC = scoresP1.get(indexLC);
+					ArrayList<Double> scoresP2ToLC = scoresP2.get(indexLC);
 					for (int indexRC = 0; indexRC < scoresP1ToLC.size(); indexRC++)
 					{
 						// 合并parent的subSymbol时需要赋予规则概率权重
@@ -224,14 +224,6 @@ public class BinaryRule extends Rule
 		}
 	}
 
-	public boolean isSameRule(short parent, short lChild, short rChild)
-	{
-		if (this.parent == parent && this.leftChild == lChild && this.rightChild == rChild)
-			return true;
-		else
-			return false;
-	}
-
 	public int hashCode()
 	{
 		final int prime = 31;
@@ -240,14 +232,6 @@ public class BinaryRule extends Rule
 		result = prime * result + rightChild;
 		return result;
 	}
-
-	// public int chidrenHashcode()
-	// {
-	// final int prime = 31;
-	// int result = leftChild;
-	// result = result * prime + rightChild;
-	// return result;
-	// }
 
 	public boolean equals(Object obj)
 	{
@@ -285,16 +269,32 @@ public class BinaryRule extends Rule
 		this.rightChild = rightChild;
 	}
 
-	public LinkedList<LinkedList<LinkedList<Double>>> getScores()
+	public double getScore(short subP, short subLC, short subRC)
 	{
-		return scores;
+		return scores.get(subP).get(subLC).get(subRC);
 	}
 
-	public void setScores(LinkedList<LinkedList<LinkedList<Double>>> scores)
+	public void setScore(short subP, short subLC, short subRC, double score)
 	{
-		this.scores = scores;
+		scores.get(subP).get(subLC).set(subRC, score);
 	}
-
+	
+	public void initScores(short pNumSub, short lCNumSub, short rCNumSub)
+	{
+		for (short i = 0; i < pNumSub; i++)
+		{
+			scores.add(new ArrayList<ArrayList<Double>>());
+			for (short j = 0; j < lCNumSub; j++)
+			{
+				scores.get(i).add(new ArrayList<Double>());
+				for (short k = 0; k < rCNumSub; k++)
+				{
+					scores.get(i).get(j).add(0.0);
+				}
+			}
+		}
+	}
+	
 	@Override
 	boolean withIn(HashSet<? extends Rule> rules)
 	{
@@ -328,16 +328,20 @@ public class BinaryRule extends Rule
 						parentStr = g.symbolStrValue(parent);
 					else
 						parentStr = g.symbolStrValue(parent) + "_" + i;
+					
 					if (g.getNumSubSymbol(leftChild) == 1)
 						lChildStr = g.symbolStrValue(leftChild);
 					else
 						lChildStr = g.symbolStrValue(leftChild) + "_" + j;
+					
 					if (g.getNumSubSymbol(rightChild) == 1)
 						rChildStr = g.symbolStrValue(rightChild);
 					else
 						rChildStr = g.symbolStrValue(rightChild) + "_" + k;
+					
 					String str = parentStr + " -> " + lChildStr + " " + rChildStr + " " + scores.get(i).get(j).get(k);
 					strs[count] = str;
+					
 					count++;
 				}
 			}
@@ -351,18 +355,6 @@ public class BinaryRule extends Rule
 		String lChildStr = g.symbolStrValue(leftChild);
 		String rChildStr = g.symbolStrValue(rightChild);
 		return parentStr + " -> " + lChildStr + " " + rChildStr;
-	}
-
-	public String toStringRule(NonterminalTable nonterminalTable, short... labels)
-	{
-		if (labels.length != 3)
-			throw new Error("参数错误。");
-		String parentStr = nonterminalTable.stringValue(parent);
-		String lChildStr = nonterminalTable.stringValue(leftChild);
-		String rChildStr = nonterminalTable.stringValue(rightChild);
-		String str = parentStr + "_" + labels[0] + "->" + lChildStr + "_" + labels[1] + " " + rChildStr + "_"
-				+ labels[2] + " " + scores.get(labels[0]).get(labels[1]).get(labels[2]);
-		return str;
 	}
 
 	public TreeMap<String, Double> getParent_i_ScoceSum(Grammar g)

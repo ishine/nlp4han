@@ -4,9 +4,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.nlp4han.coref.hobbs.MentionAttribute.Animacy;
-import org.nlp4han.coref.hobbs.MentionAttribute.Gender;
-import org.nlp4han.coref.hobbs.MentionAttribute.Number;
+import org.nlp4han.coref.hobbs.Attribute.Animacy;
+import org.nlp4han.coref.hobbs.Attribute.Gender;
+import org.nlp4han.coref.hobbs.Attribute.Number;
 
 import com.lc.nlp4han.constituent.TreeNode;
 
@@ -19,7 +19,7 @@ import com.lc.nlp4han.constituent.TreeNode;
 public class AttributeFilter extends FilterWrapper
 {
 	private TreeNode referenceNode;
-	private MentionAttribute referenceNodeAttribute;
+	private Attribute referenceNodeAttribute;
 	private AttributeGenerator attributeGenerator;
 
 	public AttributeFilter(CandidateFilter filter)
@@ -64,7 +64,7 @@ public class AttributeFilter extends FilterWrapper
 	 *            属性2
 	 * @return 若两属性不排斥，则返回true；否则，返回false
 	 */
-	public boolean isMatched(MentionAttribute attribute1, MentionAttribute attribute2)
+	public boolean isMatched(Attribute attribute1, Attribute attribute2)
 	{
 		if ((!GenderCompatibility(attribute1, attribute2)))
 			return false;
@@ -75,21 +75,21 @@ public class AttributeFilter extends FilterWrapper
 		return true;
 	}
 
-	private boolean AnimacyCompatibility(MentionAttribute attribute1, MentionAttribute attribute2)
+	private boolean AnimacyCompatibility(Attribute attribute1, Attribute attribute2)
 	{
 		Set<Animacy> a1 = attribute1.getAnimacy();
 		Set<Animacy> a2 = attribute2.getAnimacy();
 		return compare(a1, a2);
 	}
 
-	private boolean NumberCompatibility(MentionAttribute attribute1, MentionAttribute attribute2)
+	private boolean NumberCompatibility(Attribute attribute1, Attribute attribute2)
 	{
 		Set<Number> n1 = attribute1.getNumber();
 		Set<Number> n2 = attribute2.getNumber();
 		return compare(n1, n2);
 	}
 
-	private boolean GenderCompatibility(MentionAttribute attribute1, MentionAttribute attribute2)
+	private boolean GenderCompatibility(Attribute attribute1, Attribute attribute2)
 	{
 		Set<Gender> g1 = attribute1.getGender();
 		Set<Gender> g2 = attribute2.getGender();
@@ -112,9 +112,9 @@ public class AttributeFilter extends FilterWrapper
 	}
 
 	@Override
-	public List<TreeNode> filter()
+	public List<TreeNode> filter(List<TreeNode> nodes)
 	{
-		List<TreeNode> treeNodes = filter.filter();
+		List<TreeNode> treeNodes = filter.filter(nodes);
 		if (this.referenceNode == null)
 			throw new RuntimeException("未设置基准结点");
 		if (this.attributeGenerator != null)
@@ -134,12 +134,6 @@ public class AttributeFilter extends FilterWrapper
 			}
 		}
 		return treeNodes;
-	}
-
-	@Override
-	public void setFilteredNodes(List<TreeNode> treeNodes)
-	{
-		filter.setFilteredNodes(treeNodes);
 	}
 
 	@Override

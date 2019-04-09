@@ -2,8 +2,8 @@ package org.nlp4han.coref.hobbs;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
+import org.nlp4han.coref.AnaphoraResult;
 import org.nlp4han.coref.centering.CenteringBFP;
 import org.nlp4han.coref.centering.EvaluationBFP;
 
@@ -43,7 +43,7 @@ public class EvaluationHobbs extends AbstractEvaluation
 		}
 		
 
-		Map<TreeNode, TreeNode> results = hobbs.resolve(constituentTrees);
+		List<AnaphoraResult> results = hobbs.resolve(constituentTrees);
 		List<String> resultStr = toStringFormat(results, constituentTrees);
 
 		total++;

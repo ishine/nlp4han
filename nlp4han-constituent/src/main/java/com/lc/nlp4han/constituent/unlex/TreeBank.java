@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 
 import com.lc.nlp4han.constituent.BracketExpUtil;
 import com.lc.nlp4han.constituent.PlainTextByTreeStream;
@@ -25,6 +24,7 @@ public class TreeBank
 	{
 		this.treeBank = new ArrayList<AnnotationTreeNode>();
 		this.nonterminalTable = new NonterminalTable();
+		
 		init(treeBankPath, addParentLabel, encoding);
 	}
 
@@ -34,30 +34,42 @@ public class TreeBank
 		this.nonterminalTable = new NonterminalTable();
 	}
 
+	/**
+	 * 从括号表达式文件读取句法树
+	 * 
+	 * @param treeBankPath
+	 * @param addParentLabel
+	 * @param encoding
+	 * @throws IOException
+	 */
 	public void init(String treeBankPath, boolean addParentLabel, String encoding) throws IOException
 	{
 		PlainTextByTreeStream stream = new PlainTextByTreeStream(new FileInputStreamFactory(new File(treeBankPath)),
 				encoding);
 		String expression = stream.read();
-		while (expression != "" && expression != null)// 用来得到树库对应的所有结构树Tree<String>
+		while (expression != "" && expression != null)
 		{
 			expression = expression.trim();
 			if (!expression.equals(""))
-			{
 				this.addTree(expression, addParentLabel);
-			}
+			
 			expression = stream.read();
 		}
+		
 		stream.close();
 	}
 
-	public void addTree(String expression, boolean addParentLabel)
+	public void addTree(String bracketStr, boolean addParentLabel)
 	{
-		TreeNode tree = BracketExpUtil.generateTree(expression);
+		TreeNode tree = BracketExpUtil.generateTree(bracketStr);
+		
 		tree = TreeUtil.removeL2LRule(tree);
+		
 		if (addParentLabel)
 			tree = TreeUtil.addParentLabel(tree);
-		tree = Binarization.binarizeTree(tree);
+		
+		tree = TreeBinarization.binarize(tree);
+		
 		AnnotationTreeNode annotatedTree = AnnotationTreeNode.getInstance(tree, this.nonterminalTable);
 		treeBank.add(annotatedTree);
 	}
@@ -70,51 +82,56 @@ public class TreeBank
 	 */
 	public static double calLogSentenceSocre(AnnotationTreeNode node)
 	{
-		if (node.getLabel().getInnerScores() == null || node.getLabel().getOuterScores() == null)
+		if (node.getAnnotation().getInnerScores() == null || node.getAnnotation().getOuterScores() == null)
 			throw new Error("没有计算树上节点的内外向概率。");
+		
 		if (node.isLeaf())
 			throw new Error("不能利用叶子节点计算内外向概率。");
+		
 		double sentenceScore = 0.0;
-		Double[] innerScore = node.getLabel().getInnerScores();
-		Double[] outerScores = node.getLabel().getOuterScores();
+		Double[] innerScore = node.getAnnotation().getInnerScores();
+		Double[] outerScores = node.getAnnotation().getOuterScores();
 		for (int i = 0; i < innerScore.length; i++)
-		{
 			sentenceScore += innerScore[i] * outerScores[i];
-		}
+		
 		double logSenScore = Math.log(sentenceScore)
-				+ 100 * (node.getLabel().getInnerScale() + node.getLabel().getOuterScale());
+				+ 100 * (node.getAnnotation().getInnerScale() + node.getAnnotation().getOuterScale());
+		
 		return logSenScore;
 	}
 
 	public static double calSentenceSocreIgnoreScale(AnnotationTreeNode node)
 	{
-		if (node.getLabel().getInnerScores() == null || node.getLabel().getOuterScores() == null)
+		if (node.getAnnotation().getInnerScores() == null || node.getAnnotation().getOuterScores() == null)
 			throw new Error("没有计算树上节点的内外向概率。");
+		
 		if (node.isLeaf())
 			throw new Error("不能利用叶子节点计算内外向概率。");
+		
 		double sentenceScore = 0.0;
-		Double[] innerScore = node.getLabel().getInnerScores();
-		Double[] outerScores = node.getLabel().getOuterScores();
+		Double[] innerScore = node.getAnnotation().getInnerScores();
+		Double[] outerScores = node.getAnnotation().getOuterScores();
 		for (int i = 0; i < innerScore.length; i++)
-		{
 			sentenceScore += innerScore[i] * outerScores[i];
-		}
+		
 		double logSenScore = sentenceScore;
+		
 		return logSenScore;
 	}
 
 	/**
+	 * 计算整个树库的log似然值和
+	 * 
 	 * 使用前要确保计算了内外向概率
 	 * 
 	 * @return 整个树库的log似然值
 	 */
-	public double calLogTreeBankSentenceSocre()
+	public double calcLogTreeBankSentenceSocre()
 	{
 		double totalLSS = 0;
 		for (AnnotationTreeNode root : treeBank)
-		{
 			totalLSS += calLogSentenceSocre(root);
-		}
+		
 		return totalLSS;
 	}
 
@@ -129,124 +146,107 @@ public class TreeBank
 	public static void calculateInnerScore(Grammar g, AnnotationTreeNode tree)
 	{
 		if (tree.isLeaf())
-		{
 			return;
-		}
+		
 		for (AnnotationTreeNode child : tree.getChildren())
-		{
 			calculateInnerScore(g, child);
-		}
 
 		if (tree.isPreterminal())
 		{
-			final PreterminalRule tempPreRule = new PreterminalRule(tree.getLabel().getSymbol(),
-					tree.getChildren().get(0).getLabel().getWord());
-			int length = g.getNumSubSymbol(tree.getLabel().getSymbol());
-			Double[] newScores;
+			PreterminalRule tempPreRule = new PreterminalRule(tree.getAnnotation().getSymbol(),
+					tree.getChildren().get(0).getAnnotation().getWord());
+			int length = g.getNumSubSymbol(tree.getAnnotation().getSymbol());
+			Double[] innerScores = new Double[length];
 			if (g.getLexicon().getPreRules().contains(tempPreRule))
 			{
-
-				PreterminalRule realRule = g.getPreRuleBySameHead().get(tree.getLabel().getSymbol()).get(tempPreRule);
-				newScores = realRule.getScores().toArray(new Double[length]);
+				tempPreRule = g.getRule(tempPreRule);
+				for (short i = 0; i < innerScores.length; i++)
+					innerScores[i] = tempPreRule.getScore(i);
 			}
-			else// for parse
-			{// UNK
-				newScores = new Double[length];
-				double[] tag2UNKScores = g.getTag2UNKScores(tree.getLabel().getSymbol());
-				for (int i = 0; i < newScores.length; i++)
+			else
+			{
+				/*
+				 * 以下for循环在TreeProbTool中调用该方法时可能会时用到，当使用词性标注解析句子但是出现未登录词的时候else会执行，
+				 * 此时计算内向概率只是比较所有解析的可能的句子中概率最大的那个，所以将该规则tag_i->unk设置为1。
+				 **/
+				for (int i = 0; i < length; i++)
 				{
-					newScores[i] = tag2UNKScores[i];
+					innerScores[i] = 1.0;
 				}
+				// System.err.println("不包含该preRule");
 			}
+
 			// 预终结符号的内向概率不用缩放，最小为e^-30
-			tree.getLabel().setInnerScores(newScores);
-			tree.getLabel().setInnerScale(0);
+			tree.getAnnotation().setInnerScores(innerScores);
+			tree.getAnnotation().setInnerScale(0);
 		}
 		else
 		{
 			Double[] innerScores;
-			int length = g.getNumSubSymbol(tree.getLabel().getSymbol());
+			int length = g.getNumSubSymbol(tree.getAnnotation().getSymbol());
 			switch (tree.getChildren().size())
 			{
 			case 1:
-				final UnaryRule tempUnaryRule = new UnaryRule(tree.getLabel().getSymbol(),
-						tree.getChildren().get(0).getLabel().getSymbol());
+				UnaryRule tempUnaryRule = new UnaryRule(tree.getAnnotation().getSymbol(),
+						tree.getChildren().get(0).getAnnotation().getSymbol());
 				if (g.getuRules().contains(tempUnaryRule))
 				{
-					LinkedList<LinkedList<Double>> uRuleScores = g.getuRuleBySameHead().get(tree.getLabel().getSymbol())
-							.get(tempUnaryRule).getScores();
+					tempUnaryRule = g.getRule(tempUnaryRule);
 					innerScores = new Double[length];
-					int childInnerScale = tree.getChildren().get(0).getLabel().getInnerScale();
-					for (int i = 0; i < innerScores.length; i++)
+					int childInnerScale = tree.getChildren().get(0).getAnnotation().getInnerScale();
+					for (short i = 0; i < innerScores.length; i++)
 					{
 						double innerScores_Ai = 0.0;
-						for (int j = 0; j < g.getNumSubSymbol(tree.getChildren().get(0).getLabel().getSymbol()); j++)
+						for (short j = 0; j < g
+								.getNumSubSymbol(tree.getChildren().get(0).getAnnotation().getSymbol()); j++)
 						{ // 规则A_i -> B_j的概率
-							double A_i2B_j = uRuleScores.get(i).get(j);
-							double B_jInnerScore = tree.getChildren().get(0).getLabel().getInnerScores()[j];
+							double A_i2B_j = tempUnaryRule.getScore(i, j);
+							double B_jInnerScore = tree.getChildren().get(0).getAnnotation().getInnerScores()[j];
 							innerScores_Ai = innerScores_Ai + (A_i2B_j * B_jInnerScore);
 						}
 						innerScores[i] = innerScores_Ai;
 					}
-					int newScale = ScalingTools.scaleArray(childInnerScale, innerScores);
-					tree.getLabel().setInnerScores(innerScores);
-					tree.getLabel().setInnerScale(newScale);
+					int newScale = ScalingUtils.scaleArray(childInnerScale, innerScores);
+					tree.getAnnotation().setInnerScores(innerScores);
+					tree.getAnnotation().setInnerScale(newScale);
 				}
 				else
-				{
-					innerScores = new Double[length];
-					for (int i = 0; i < innerScores.length; i++)
-					{
-						innerScores[i] = 0.0;
-					}
-					tree.getLabel().setInnerScores(innerScores);
-					tree.getLabel().setInnerScale(0);
-					System.err.println("Attention:grammar don't contains  uRule :" + tempUnaryRule.toString());
-				}
+					throw new Error("Attention:grammar don't contains  uRule ");
 				break;
 			case 2:
-				final BinaryRule tempBRule = new BinaryRule(tree.getLabel().getSymbol(),
-						tree.getChildren().get(0).getLabel().getSymbol(),
-						tree.getChildren().get(1).getLabel().getSymbol());
+				BinaryRule tempBRule = new BinaryRule(tree.getAnnotation().getSymbol(),
+						tree.getChildren().get(0).getAnnotation().getSymbol(),
+						tree.getChildren().get(1).getAnnotation().getSymbol());
 				if (g.getbRules().contains(tempBRule))
 				{
-					LinkedList<LinkedList<LinkedList<Double>>> bRuleScores = g.getbRuleBySameHead()
-							.get(tree.getLabel().getSymbol()).get(tempBRule).getScores();
+					tempBRule = g.getRule(tempBRule);
 					innerScores = new Double[length];
-					int leftChildInnerScale = tree.getChildren().get(0).getLabel().getInnerScale();
-					int rightChildInnerScale = tree.getChildren().get(1).getLabel().getInnerScale();
-					for (int i = 0; i < innerScores.length; i++)
+					int leftChildInnerScale = tree.getChildren().get(0).getAnnotation().getInnerScale();
+					int rightChildInnerScale = tree.getChildren().get(1).getAnnotation().getInnerScale();
+					for (short i = 0; i < innerScores.length; i++)
 					{
 						double innerScores_Ai = 0.0;
-						for (int j = 0; j < g.getNumSubSymbol(tree.getChildren().get(0).getLabel().getSymbol()); j++)
+						for (short j = 0; j < g
+								.getNumSubSymbol(tree.getChildren().get(0).getAnnotation().getSymbol()); j++)
 						{
-							for (int k = 0; k < g
-									.getNumSubSymbol(tree.getChildren().get(1).getLabel().getSymbol()); k++)
+							for (short k = 0; k < g
+									.getNumSubSymbol(tree.getChildren().get(1).getAnnotation().getSymbol()); k++)
 							{
 								// 规则A_i -> B_j C_k的概率
-								double A_i2B_jC_k = bRuleScores.get(i).get(j).get(k);
-								double B_jInnerScore = tree.getChildren().get(0).getLabel().getInnerScores()[j];
-								double C_kInnerScore = tree.getChildren().get(1).getLabel().getInnerScores()[k];
+								double A_i2B_jC_k = tempBRule.getScore(i, j, k);
+								double B_jInnerScore = tree.getChildren().get(0).getAnnotation().getInnerScores()[j];
+								double C_kInnerScore = tree.getChildren().get(1).getAnnotation().getInnerScores()[k];
 								innerScores_Ai = innerScores_Ai + (A_i2B_jC_k * B_jInnerScore * C_kInnerScore);
 							}
 						}
 						innerScores[i] = innerScores_Ai;
 					}
-					int newScale = ScalingTools.scaleArray(leftChildInnerScale + rightChildInnerScale, innerScores);
-					tree.getLabel().setInnerScores(innerScores);
-					tree.getLabel().setInnerScale(newScale);
+					int newScale = ScalingUtils.scaleArray(leftChildInnerScale + rightChildInnerScale, innerScores);
+					tree.getAnnotation().setInnerScores(innerScores);
+					tree.getAnnotation().setInnerScale(newScale);
 				}
 				else
-				{
-					innerScores = new Double[length];
-					for (int i = 0; i < innerScores.length; i++)
-					{
-						innerScores[i] = 0.0;
-					}
-					tree.getLabel().setInnerScores(innerScores);
-					tree.getLabel().setInnerScale(0);
-					System.err.println("Attention :grammar don't contains  bRule :" + tempBRule.toString());
-				}
+					throw new Error("Attention :grammar don't contains the bRule ");
 				break;
 			default:
 				throw new Error("Error tree: more than two children.");
@@ -263,23 +263,25 @@ public class TreeBank
 	{
 		if (tree == null)
 			return;
+		
 		calculateOuterScoreHelper(g, tree, tree);
 	}
 
 	private static void calculateOuterScoreHelper(Grammar g, AnnotationTreeNode treeRoot, AnnotationTreeNode treeNode)
 	{
-
 		if (treeNode == null)
 			return;
+		
 		if (treeNode.isLeaf())
 			return;
+		
 		// 计算根节点的外向概率
 		if (treeNode == treeRoot)
 		{
-			Double[] array = new Double[g.getNumSubSymbol(treeNode.getLabel().getSymbol())];
+			Double[] array = new Double[g.getNumSubSymbol(treeNode.getAnnotation().getSymbol())];
 			Arrays.fill(array, 1.0);
-			treeNode.getLabel().setOuterScores(array);
-			treeNode.getLabel().setOuterScale(0);
+			treeNode.getAnnotation().setOuterScores(array);
+			treeNode.getAnnotation().setOuterScale(0);
 		}
 		else
 		{
@@ -287,80 +289,77 @@ public class TreeBank
 			switch (parent.getChildren().size())
 			{
 			case 1:
-				final UnaryRule tempUnaryRule = new UnaryRule(parent.getLabel().getSymbol(),
-						treeNode.getLabel().getSymbol());
+				UnaryRule tempUnaryRule = new UnaryRule(parent.getAnnotation().getSymbol(),
+						treeNode.getAnnotation().getSymbol());
 				if (g.getuRules().contains(tempUnaryRule))
 				{
-					LinkedList<LinkedList<Double>> uRuleScores = g.getuRuleBySameHead()
-							.get(parent.getLabel().getSymbol()).get(tempUnaryRule).getScores();
-					Double[] outerScores = new Double[g.getNumSubSymbol(treeNode.getLabel().getSymbol())];
-					int parentOuterScale = parent.getLabel().getOuterScale();
-					for (int j = 0; j < outerScores.length; j++)
+					tempUnaryRule = g.getRule(tempUnaryRule);
+					Double[] outerScores = new Double[g.getNumSubSymbol(treeNode.getAnnotation().getSymbol())];
+					int parentOuterScale = parent.getAnnotation().getOuterScale();
+					for (short j = 0; j < outerScores.length; j++)
 					{
 						double outerScores_Bj = 0.0;
-						for (int i = 0; i < g.getNumSubSymbol(parent.getLabel().getSymbol()); i++)
+						for (short i = 0; i < g.getNumSubSymbol(parent.getAnnotation().getSymbol()); i++)
 						{
-							double A_i2B_j = uRuleScores.get(i).get(j);
-							double A_iOuterScore = parent.getLabel().getOuterScores()[i];
+							double A_i2B_j = tempUnaryRule.getScore(i, j);
+							double A_iOuterScore = parent.getAnnotation().getOuterScores()[i];
 							outerScores_Bj = outerScores_Bj + (A_i2B_j * A_iOuterScore);
 						}
 						outerScores[j] = outerScores_Bj;
 					}
-					int newScale = ScalingTools.scaleArray(parentOuterScale, outerScores);
-					treeNode.getLabel().setOuterScores(outerScores);
-					treeNode.getLabel().setOuterScale(newScale);
+					int newScale = ScalingUtils.scaleArray(parentOuterScale, outerScores);
+					treeNode.getAnnotation().setOuterScores(outerScores);
+					treeNode.getAnnotation().setOuterScale(newScale);
 				}
 				else
-				{
 					throw new Error("Error grammar: don't contains  uRule :" + tempUnaryRule.toString());
-				}
 
 				break;
 			case 2:
 				// 获取兄弟节点的内向概率
 				Double[] siblingNode_InScore;
-				final BinaryRule tempBRule;
+				BinaryRule tempBRule;
 				int siblingInnerScale;
-				int parentOuterScale = parent.getLabel().getOuterScale();
+				int parentOuterScale = parent.getAnnotation().getOuterScale();
 				if (parent.getChildren().get(0) == treeNode)
 				{
-					siblingNode_InScore = parent.getChildren().get(1).getLabel().getInnerScores();
-					siblingInnerScale = parent.getChildren().get(1).getLabel().getInnerScale();
-					tempBRule = new BinaryRule(parent.getLabel().getSymbol(), treeNode.getLabel().getSymbol(),
-							parent.getChildren().get(1).getLabel().getSymbol());
+					siblingNode_InScore = parent.getChildren().get(1).getAnnotation().getInnerScores();
+					siblingInnerScale = parent.getChildren().get(1).getAnnotation().getInnerScale();
+					tempBRule = new BinaryRule(parent.getAnnotation().getSymbol(), treeNode.getAnnotation().getSymbol(),
+							parent.getChildren().get(1).getAnnotation().getSymbol());
 				}
 				else
 				{
-					siblingNode_InScore = parent.getChildren().get(0).getLabel().getInnerScores();
-					siblingInnerScale = parent.getChildren().get(0).getLabel().getInnerScale();
-					tempBRule = new BinaryRule(parent.getLabel().getSymbol(),
-							parent.getChildren().get(0).getLabel().getSymbol(), treeNode.getLabel().getSymbol());
+					siblingNode_InScore = parent.getChildren().get(0).getAnnotation().getInnerScores();
+					siblingInnerScale = parent.getChildren().get(0).getAnnotation().getInnerScale();
+					tempBRule = new BinaryRule(parent.getAnnotation().getSymbol(),
+							parent.getChildren().get(0).getAnnotation().getSymbol(),
+							treeNode.getAnnotation().getSymbol());
 				}
 
 				if (g.getbRules().contains(tempBRule))
 				{
-					LinkedList<LinkedList<LinkedList<Double>>> bRuleScores = g.getbRuleBySameHead()
-							.get(parent.getLabel().getSymbol()).get(tempBRule).getScores();
-					Double[] outerScores = new Double[g.getNumSubSymbol(treeNode.getLabel().getSymbol())];
-					for (int i = 0; i < outerScores.length; i++)
+					tempBRule = g.getRule(tempBRule);
+					Double[] outerScores = new Double[g.getNumSubSymbol(treeNode.getAnnotation().getSymbol())];
+					for (short i = 0; i < outerScores.length; i++)
 					{
 						double outerScoreB_i = 0.0;
-						for (int j = 0; j < g.getNumSubSymbol(parent.getLabel().getSymbol()); j++)
+						for (short j = 0; j < g.getNumSubSymbol(parent.getAnnotation().getSymbol()); j++)
 						{
-							double A_jOuterscore = parent.getLabel().getOuterScores()[j];
-							for (int k = 0; k < siblingNode_InScore.length; k++)
+							double A_jOuterscore = parent.getAnnotation().getOuterScores()[j];
+							for (short k = 0; k < siblingNode_InScore.length; k++)
 							{
 								double C_kInnerScore = siblingNode_InScore[k];
 								if (parent.getChildren().get(0) == treeNode)
 								{
 
-									double A_j2B_iC_k = bRuleScores.get(j).get(i).get(k);
+									double A_j2B_iC_k = tempBRule.getScore(j, i, k);
 									outerScoreB_i = outerScoreB_i + (A_j2B_iC_k * A_jOuterscore * C_kInnerScore);
 
 								}
 								else
 								{
-									double A_j2C_kB_i = bRuleScores.get(j).get(k).get(i);
+									double A_j2C_kB_i = tempBRule.getScore(j, k, i);
 									outerScoreB_i = outerScoreB_i + (A_j2C_kB_i * A_jOuterscore * C_kInnerScore);
 								}
 
@@ -368,27 +367,24 @@ public class TreeBank
 						}
 						outerScores[i] = outerScoreB_i;
 					}
-					int newScale = ScalingTools.scaleArray(parentOuterScale + siblingInnerScale, outerScores);
-					treeNode.getLabel().setOuterScores(outerScores);
-					treeNode.getLabel().setOuterScale(newScale);
+					int newScale = ScalingUtils.scaleArray(parentOuterScale + siblingInnerScale, outerScores);
+					treeNode.getAnnotation().setOuterScores(outerScores);
+					treeNode.getAnnotation().setOuterScale(newScale);
 				}
 				else
-				{
 					throw new Error("Error grammar: don't contains  bRule :" + tempBRule.toString());
-				}
 
 				break;
 			default:
 				throw new Error("error tree:more than two children.");
 			}
 		}
+		
 		for (AnnotationTreeNode childNode : treeNode.getChildren())
-		{
 			calculateOuterScoreHelper(g, treeRoot, childNode);
-		}
 	}
 
-	public void calIOScore(Grammar g)
+	public void calcIOScore(Grammar g)
 	{
 		for (AnnotationTreeNode tree : treeBank)
 		{
@@ -397,12 +393,11 @@ public class TreeBank
 		}
 	}
 
+	// 清空所有树的内外概率
 	public void forgetIOScoreAndScale()
 	{
 		for (AnnotationTreeNode tree : treeBank)
-		{
 			tree.forgetIOScoreAndScale();
-		}
 	}
 
 	public NonterminalTable getNonterminalTable()

@@ -12,7 +12,7 @@ import java.util.*;
 public class TreeNodeUtil
 {
 	// 获得树的叶子或词的序列
-	public static String[] getetWordsFromTree(TreeNode tree)
+	public static String[] getetWords(TreeNode tree)
 	{
 		List<String> words = new ArrayList<String>();
 		traverseTree(tree, words, null);
@@ -22,6 +22,21 @@ public class TreeNodeUtil
 			words1[i] = words.get(i);
 		}
 		return words1;
+	}
+
+	// 获得树的叶子或词的串
+	public static String getetWordString(TreeNode tree)
+	{
+		List<String> words = new ArrayList<String>();
+		traverseTree(tree, words, null);
+		
+		String str = new String();
+		for (int i = 0; i < words.size(); i++)
+		{
+			str += words.get(i);
+		}
+		
+		return str;
 	}
 
 	// 获得树的叶子或词的个数
@@ -321,64 +336,23 @@ public class TreeNodeUtil
 	/**
 	 * 获取NP结点的中心词
 	 * 
-	 * @param nPNode
+	 * @param node
 	 * @return
 	 */
-	public static TreeNode getHead(TreeNode nPNode, HashMap<String, List<HeadRule>> NPRules)
+	public static TreeNode getHead(TreeNode node)
 	{
-		String currNodeName = nPNode.getNodeName();
-		TreeNode result = null;
-		if (NPRules.containsKey(currNodeName))
-		{
-			for (int k = 0; k < NPRules.get(currNodeName).size(); k++)
-			{
-				if (NPRules.get(currNodeName).get(k).getDirection().equals("right"))
-				{
-					// 用所有的子节点从左向右匹配规则中每一个
-					for (int i = 0; i < NPRules.get(currNodeName).get(k).getRightRulesSize(); i++)
-					{
-						for (int j = 0; j < nPNode.getChildrenNum(); j++)
-						{
-							if (nPNode.getChildName(j).equals(NPRules.get(currNodeName).get(k).getRightRule(i)))
-							{
-								result = nPNode.getChild(j);
-								if (result.getNodeName().equals("NP"))
-								{
-									return getHead(result, NPRules);
-								}
-								else
-								{
-									return result;
-								}
-							}
-						}
-					}
-				}
-				else if (NPRules.get(currNodeName).get(k).getDirection().equals("left"))
-				{
-					for (int i = 0; i < NPRules.get(currNodeName).get(k).getRightRulesSize(); i++)
-					{
-						for (int j = nPNode.getChildrenNum() - 1; j >= 0; j--)
-						{
-							if (nPNode.getChildName(j).equals(NPRules.get(currNodeName).get(k).getRightRule(i)))
-							{
-								result = nPNode.getChild(j);
-								if (result.getNodeName().equals("NP"))
-								{
-									return getHead(result, NPRules);
-								}
-								else
-								{
-									return result;
-								}
-							}
-						}
-					}
-				}
-			}
+		if (node.getChildrenNum() == 0)
+			return node;
+		
+		AbstractHeadGenerator headGen = new HeadGeneratorCollins(new HeadRuleSetCTB());
+		HeadTreeNode headTree1 = TreeToHeadTree.treeToHeadTree(node, headGen);
 
-		}
-		return result;
+		String headWord = headTree1.getHeadWord();
+
+		List<TreeNode> leaves = getAllLeafNodes(node);
+		TreeNode headNode = getLastNodeWithSpecifiedName(leaves, new String[] { headWord });
+
+		return headNode;
 	}
 
 	private static TreeNode getFirstNodeFromRightToLeft(List<? extends TreeNode> nodes, String[] taggers)
@@ -427,7 +401,6 @@ public class TreeNodeUtil
 		return result;
 	}
 
-
 	/**
 	 * 是否为并列结构的NP结点
 	 * 
@@ -435,7 +408,7 @@ public class TreeNodeUtil
 	 * @return
 	 */
 	public static boolean isCoordinatingNP(TreeNode treeNode)
-	{ 
+	{
 		if (treeNode == null || !treeNode.getNodeName().equals("NP"))
 		{
 			throw new RuntimeException("NPNode错误！");
@@ -545,7 +518,7 @@ public class TreeNodeUtil
 			return result.toString();
 		}
 		return null;
-		
+
 	}
 
 	/**
@@ -582,7 +555,7 @@ public class TreeNodeUtil
 		}
 		return result;
 	}
-	
+
 	/**
 	 * 获得根节点rootNode下的所有NP结点
 	 * 
@@ -594,7 +567,7 @@ public class TreeNodeUtil
 	{
 		return TreeNodeUtil.getNodesWithSpecifiedName(rootNode, new String[] { "NP" });
 	}
-	
+
 	/**
 	 * 结点treeNode是否为NP结点
 	 * 
@@ -606,7 +579,7 @@ public class TreeNodeUtil
 	{
 		return TreeNodeUtil.isNodeWithSpecifiedName(treeNode, new String[] { "NP" });
 	}
-	
+
 	/**
 	 * 结点treeNode是否为IP结点
 	 * 
@@ -618,7 +591,7 @@ public class TreeNodeUtil
 	{
 		return TreeNodeUtil.isNodeWithSpecifiedName(treeNode, new String[] { "IP" });
 	}
-	
+
 	/**
 	 * 根结点rootNode下，路径path左侧，从左至右，广度优先遍历得到的所有NP结点
 	 * 
@@ -632,7 +605,7 @@ public class TreeNodeUtil
 				new String[] { "NP" });
 		return result;
 	}
-	
+
 	/**
 	 * 从treeNode开始，向上遍历，找到第一个NP结点
 	 * 
@@ -644,7 +617,7 @@ public class TreeNodeUtil
 	{
 		return TreeNodeUtil.getFirstNodeUpWithSpecifiedName(treeNode, "NP");
 	}
-	
+
 	/**
 	 * 从treeNode开始，向上遍历，找到第一个NP或IP结点
 	 * 
@@ -655,9 +628,10 @@ public class TreeNodeUtil
 	{
 		return TreeNodeUtil.getFirstNodeUpWithSpecifiedName(treeNode, new String[] { "NP", "IP" });
 	}
-	
+
 	/**
 	 * 找到结点在其兄弟节点中的位置
+	 * 
 	 * @param node
 	 * @return
 	 */
@@ -668,7 +642,7 @@ public class TreeNodeUtil
 		if (node.getParent() != null)
 		{
 			TreeNode father = node.getParent();
-			for (int i=0 ; i<father.getChildrenNum() ; i++)
+			for (int i = 0; i < father.getChildrenNum(); i++)
 			{
 				if (father.getChild(i) == node)
 				{
@@ -678,9 +652,10 @@ public class TreeNodeUtil
 		}
 		return -1;
 	}
-	
+
 	/**
 	 * 根据结点名与其位置，找出树中其对应的结点
+	 * 
 	 * @param nodeName
 	 * @param site
 	 * @param root
@@ -701,6 +676,7 @@ public class TreeNodeUtil
 
 	/**
 	 * 找出叶子结点的位置
+	 * 
 	 * @param leaf
 	 * @return
 	 */
@@ -713,6 +689,6 @@ public class TreeNodeUtil
 		TreeNode root = getRootNode(leaf);
 		List<TreeNode> leaves = getAllLeafNodes(root);
 		return leaves.indexOf(leaf);
-		 
+
 	}
 }

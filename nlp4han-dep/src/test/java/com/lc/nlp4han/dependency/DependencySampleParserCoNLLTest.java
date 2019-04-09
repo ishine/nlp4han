@@ -46,7 +46,7 @@ public class DependencySampleParserCoNLLTest {
 	@Test
 	public void testStanford(){
 		String result = 
-				"核心成分(核心-0,惩治-2)" + "\n" +
+				"核心成分(" + DependencyParser.RootWord + "-0,惩治-2)" + "\n" +
 				"方式(惩治-2,坚决-1)" + "\n" +
 				"限定(犯罪-7,贪污-3)" + "\n" +
 				"连接依存(贪污-3,贿赂-4)" + "\n" +

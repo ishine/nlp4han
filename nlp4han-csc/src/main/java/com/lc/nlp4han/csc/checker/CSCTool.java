@@ -11,10 +11,10 @@ import java.util.List;
 
 import com.lc.nlp4han.csc.evaluation.CSCEvaluator;
 import com.lc.nlp4han.csc.evaluation.Evaluation;
-import com.lc.nlp4han.csc.ngram.HustNGramModel;
+import com.lc.nlp4han.csc.ngram.NGramModelImpl;
 import com.lc.nlp4han.csc.ngram.NGramModel;
 import com.lc.nlp4han.csc.util.Dictionary;
-import com.lc.nlp4han.csc.util.FileOperator;
+import com.lc.nlp4han.csc.util.FileUtils;
 import com.lc.nlp4han.csc.util.Sentence;
 
 /**
@@ -41,7 +41,7 @@ public class CSCTool {
 		ChineseSpellCheckerTrainer trainer = new ChineseSpellCheckerTrainer();
 		ArrayList<String> files = new ArrayList<>();
 		System.out.println("开始训练语言模型...");
-		HustNGramModel nGramModel = trainer.constructLM(corpus, encoding, 3);
+		NGramModelImpl nGramModel = trainer.constructLM(corpus, encoding, 3);
 		String lm = zipPath + "\\lm.bin";
 		nGramModel.writeLM(lm);
 		System.out.println("语言模型训练完成。");
@@ -58,7 +58,7 @@ public class CSCTool {
 			files.add(dict);
 		}
 		
-		FileOperator.zipFiles(files, zipPath);
+		FileUtils.zipFiles(files, zipPath);
 		System.out.println("拼写纠正模型建立完成。");
 	}
 	
@@ -77,7 +77,7 @@ public class CSCTool {
 		System.out.println("加载模型文件...");
 		ChineseSpellChecker checkModel = readModel(model, method, charType);
 		System.out.println("模型文件加载完成。\n开始纠正文本..");
-		ArrayList<Sentence> sentences = FileOperator.readSentenceFile(testCorpus, encoding);
+		ArrayList<Sentence> sentences = FileUtils.readSentenceFile(testCorpus, encoding);
 		OutputStreamWriter oWriter = new OutputStreamWriter(new FileOutputStream(new File(output)), encoding);
 		BufferedWriter writer = new BufferedWriter(oWriter);
 		
@@ -107,8 +107,8 @@ public class CSCTool {
 		System.out.println("加载模型文件...");
 		ChineseSpellChecker checkModel = readModel(model, method, charType);
 		System.out.println("模型文件加载完成。\n开始预处理测试语料...");
-		ArrayList<Sentence> original = FileOperator.readSentenceFile(testCorpus, encoding);
-		ArrayList<Sentence> gold = FileOperator.readSentenceFile(goldCorpus, encoding);
+		ArrayList<Sentence> original = FileUtils.readSentenceFile(testCorpus, encoding);
+		ArrayList<Sentence> gold = FileUtils.readSentenceFile(goldCorpus, encoding);
 		ArrayList<Sentence> result = new ArrayList<>();
 		
 		Sentence bestSentence = null;
@@ -122,7 +122,7 @@ public class CSCTool {
 		Evaluation evaluation = new CSCEvaluator(original, gold, result);
 		String eval = evaluation.show();
 		if(output != null) {
-			FileOperator.writeEvaluation(output, encoding, eval);
+			FileUtils.writeEvaluation(output, encoding, eval);
 		}
 		System.out.println("模型指标评价完成。");
 	}
@@ -139,7 +139,7 @@ public class CSCTool {
 	public static ChineseSpellChecker readModel(String model, String method, String charType) throws ClassNotFoundException, IOException {
 		ChineseSpellCheckerTrainer trainer = null;
 		String path = model.split("checker.model")[0];
-		List<File> files = FileOperator.unZipFile(model, path);
+		List<File> files = FileUtils.unZipFile(model, path);
 		
 		if(files == null) {
 			System.err.println("模型文件为空");
@@ -148,7 +148,7 @@ public class CSCTool {
 			System.out.println("开始加载语言模型...");
 			File lmFile = new File(path + "lm.bin");
 			if(lmFile.exists()) {
-				NGramModel nGramModel = FileOperator.loadModel(lmFile);
+				NGramModel nGramModel = FileUtils.loadModel(lmFile);
 				System.out.println("语言模型加载完成。");
 				if(method.equals("bcws")) {
 					trainer = new ChineseSpellCheckerTrainer(nGramModel, method, charType);
@@ -158,7 +158,7 @@ public class CSCTool {
 				System.out.println("开始加载字典...");
 				File dictFile = new File(path + "dict.bin");
 				if(dictFile.exists()) {
-					Dictionary dictionary = FileOperator.loadDict(dictFile);
+					Dictionary dictionary = FileUtils.loadDict(dictFile);
 					System.out.println("字典加载完成。");
 					trainer = new ChineseSpellCheckerTrainer(nGramModel, dictionary, method, charType);
 				}else {

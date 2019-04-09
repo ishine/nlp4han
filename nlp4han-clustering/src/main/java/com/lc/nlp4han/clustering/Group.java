@@ -1,7 +1,6 @@
 package com.lc.nlp4han.clustering;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -27,58 +26,6 @@ public class Group
 		if (members == null)
 			members = new LinkedList<Text>();
 		members.addAll(texts);
-	}
-
-	public static Double getDistance(Group g1, Group g2, DistanceCalculator d)
-	{
-		return d.getDistance(g1, g2);
-	}
-
-	public static Group getNearestGroup(Group g, List<Group> grps, DistanceCalculator d)
-	{
-		double minDistance = Double.POSITIVE_INFINITY;
-		int index = -1;
-		for (int i=0 ; i<grps.size() ; i++)
-		{
-			double distance = d.getDistance(g, grps.get(i));
-			if (distance < minDistance)
-			{
-				minDistance = distance;
-				index = i;
-			}
-		}
-		return grps.get(index);
-	}
-
-	public boolean updateCenter()
-	{
-		if (members==null || members.size()<1)
-			return false;
-			
-		int n = members.get(0).getSample().getVecter().length;  // Sample中vector的维度
-		double[] newCenter = new double[n];
-		
-		for (int i=0 ; i<members.size() ; i++)  // 将members每个成员的Sample中vector的每位对应相加
-		{
-			double[] tmp = members.get(i).getSample().getVecter();
-			for (int j=0 ; j<tmp.length ; j++)
-			{
-				newCenter[j] += tmp[j];
-			}
-		}
-		
-		for (int i=0 ; i<n ; i++)
-		{
-			newCenter[i] /= members.size();
-		}
-		
-		if (Arrays.equals(newCenter, center.getVecter()))
-			return false;
-		else
-		{
-			center.setVecter(newCenter);;
-			return true;
-		}
 	}
 
 	public void addMember(Text t)
@@ -170,7 +117,7 @@ public class Group
 		return result;
 	}
 	
-	public int getMembersNumber()
+	public int size()
 	{
 		if (members != null)
 			return members.size();

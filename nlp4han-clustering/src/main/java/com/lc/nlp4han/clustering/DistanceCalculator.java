@@ -1,13 +1,19 @@
 package com.lc.nlp4han.clustering;
 
-public class DistanceCalculator
+import java.util.Collection;
+
+public abstract class DistanceCalculator
 {
-	private SampleGenerator sampleGenerator;
-	
-	public void setSampleGenerator(SampleGenerator sg)
+	public void init(FeatureGenerator fg)
 	{
-		this.sampleGenerator = sg;
 	}
+	
+	public void init(Collection<Feature> fg)
+	{	
+	}
+	
+	public abstract double getDistance(Sample s1, Sample s2);
+	
 	
 	public double getDistance(Text t1, Text t2)
 	{
@@ -15,10 +21,11 @@ public class DistanceCalculator
 		{
 			throw new RuntimeException("参数错误！");
 		}
+		
 		Sample s1 = t1.getSample();
 		Sample s2 = t2.getSample();
 		
-		return sampleGenerator.getDistance(s1, s2);
+		return getDistance(s1, s2);
 	}
 	
 	public double getDistance(Text t1, Group g1) 
@@ -27,8 +34,9 @@ public class DistanceCalculator
 		{
 			throw new RuntimeException("参数错误！");
 		}
+		
 		Sample s2 = g1.getCenter();
-		return sampleGenerator.getDistance(t1.getSample(), s2);
+		return getDistance(t1.getSample(), s2);
 	}
 	
 	public double getDistance(Group g1, Group g2)
@@ -40,6 +48,6 @@ public class DistanceCalculator
 		
 		Sample s1 = g1.getCenter();
 		Sample s2 = g2.getCenter();
-		return sampleGenerator.getDistance(s1, s2);
+		return getDistance(s1, s2);
 	}
 }

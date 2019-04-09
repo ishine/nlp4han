@@ -5,9 +5,10 @@ import java.util.List;
 
 import com.lc.nlp4han.constituent.HeadTreeNode;
 import com.lc.nlp4han.ml.util.ModelWrapper;
-import com.lc.nlp4han.segpos.WordSegAndPosContextGenerator;
-import com.lc.nlp4han.segpos.WordSegAndPosContextGeneratorConf;
-import com.lc.nlp4han.segpos.WordSegAndPosME;
+//import com.lc.nlp4han.segpos.WordSegAndPosContextGenerator;
+//import com.lc.nlp4han.segpos.WordSegAndPosContextGeneratorConf;
+//import com.lc.nlp4han.segpos.WordSegAndPosME;
+import com.lc.nlp4han.pos.word.POSTaggerWordME;
 
 /**
  * 中文的词性标注器
@@ -18,13 +19,14 @@ import com.lc.nlp4han.segpos.WordSegAndPosME;
 public class POSTaggerForParserMEChinese implements POSTaggerForParser<HeadTreeNode>
 {
 
-	private WordSegAndPosME postagger;
-	private WordSegAndPosContextGenerator generator;
+//	private WordSegAndPosME postagger;
+//	private WordSegAndPosContextGenerator generator;
+	private POSTaggerWordME postagger;
 
 	public POSTaggerForParserMEChinese(ModelWrapper posmodel) throws IOException
 	{
-		generator = new WordSegAndPosContextGeneratorConf();
-		postagger = new WordSegAndPosME(posmodel, generator);
+//		generator = new WordSegAndPosContextGeneratorConf();
+//		postagger = new WordSegAndPosME(posmodel, generator);
 	}
 
 	/**
@@ -37,7 +39,7 @@ public class POSTaggerForParserMEChinese implements POSTaggerForParser<HeadTreeN
 	@Override
 	public List<HeadTreeNode> posTree(String[] words)
 	{
-		String[][] poses = postagger.tag(1, words);
+		String[][] poses = postagger.tag(words, 1);
 		List<List<HeadTreeNode>> posTree = HeadTreeNode.toPosTree(words, poses);
 		return posTree.get(0);
 	}
@@ -68,7 +70,7 @@ public class POSTaggerForParserMEChinese implements POSTaggerForParser<HeadTreeN
 	@Override
 	public List<List<HeadTreeNode>> posTree(String[] words, int k)
 	{
-		String[][] poses = postagger.tag(k, words);
+		String[][] poses = postagger.tag(words, k);
 		List<List<HeadTreeNode>> posTree = HeadTreeNode.toPosTree(words, poses);
 		return posTree;
 	}

@@ -4,19 +4,20 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.junit.Test;
+import org.nlp4han.coref.AnaphoraResult;
 import org.nlp4han.coref.centering.EvaluationBFP;
 import org.nlp4han.coref.hobbs.Hobbs;
 
 import com.lc.nlp4han.constituent.BracketExpUtil;
 import com.lc.nlp4han.constituent.TreeNode;
+import com.lc.nlp4han.constituent.TreeNodeUtil;
 
 public class TestHobbs
 {
+	private Hobbs hobbs = new Hobbs();
 
 	@Test
 	public void testHobbs_1()
@@ -33,11 +34,7 @@ public class TestHobbs
 		constituentTrees.add(s1);
 		constituentTrees.add(s2);
 		
-		AttributeFilter attributeFilter = new AttributeFilter(new PNFilter(new NodeNameFilter())); // 组合过滤器
-		attributeFilter.setAttributeGenerator(new AttributeGeneratorByDic()); // 装入属性生成器
-		
-		Hobbs hobbs = new Hobbs(attributeFilter);
-		Map<TreeNode, TreeNode> result = hobbs.resolve(constituentTrees);
+		List<AnaphoraResult> result = hobbs.resolve(constituentTrees);
 		
 		List<String> resultStr = EvaluationBFP.toStringFormat(result, constituentTrees);
 		
@@ -62,11 +59,7 @@ public class TestHobbs
 		constituentTrees.add(s1);
 		constituentTrees.add(s2);
 
-		AttributeFilter attributeFilter = new AttributeFilter(new PNFilter(new NodeNameFilter())); // 组合过滤器
-		attributeFilter.setAttributeGenerator(new AttributeGeneratorByDic()); // 装入属性生成器
-		
-		Hobbs hobbs = new Hobbs(attributeFilter);
-		Map<TreeNode, TreeNode> result = hobbs.resolve(constituentTrees);
+		List<AnaphoraResult> result = hobbs.resolve(constituentTrees);
 		List<String> resultStr = EvaluationBFP.toStringFormat(result, constituentTrees);
 		
 		List<String> goal = new ArrayList<String>();
@@ -88,17 +81,34 @@ public class TestHobbs
 		List<TreeNode> constituentTrees = new ArrayList<TreeNode>();
 		constituentTrees.add(s1);
 
-		AttributeFilter attributeFilter = new AttributeFilter(new PNFilter(new NodeNameFilter())); // 组合过滤器
-		attributeFilter.setAttributeGenerator(new AttributeGeneratorByDic()); // 装入属性生成器
-		
-		Hobbs hobbs = new Hobbs(attributeFilter);
-		Map<TreeNode, TreeNode> result = hobbs.resolve(constituentTrees);
+		List<AnaphoraResult> result = hobbs.resolve(constituentTrees);
 		List<String> resultStr = EvaluationBFP.toStringFormat(result, constituentTrees);
 		
 		List<String> goal = new ArrayList<String>();
 		goal.add("她(1-7)->黄秋雅(1-1)");
 		
 		assertEquals(goal, resultStr);
+	}
+	
+	@Test
+	public void testHobbs_4()
+	{
+		String str;
+		str = "(IP (NP (NR 李明)) (VP (VV 喜欢) (NP(NP (PN 他))(NP (NN 爷爷))))(PU 。))";
+		TreeNode s1 = BracketExpUtil.generateTree(str);
+
+		List<TreeNode> constituentTrees = new ArrayList<TreeNode>();
+		constituentTrees.add(s1);
+
+		List<AnaphoraResult> result = hobbs.resolve(constituentTrees);
+		
+		assertEquals(1, result.size());
+		
+		TreeNode pron = result.get(0).getPronNode();
+		assertEquals("他", TreeNodeUtil.getetWordString(pron));
+		
+		TreeNode antecedent = result.get(0).getAntecedentNode();
+		assertEquals("李明", TreeNodeUtil.getetWordString(antecedent));
 	}
 	
 }

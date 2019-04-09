@@ -65,9 +65,10 @@ public class TreeUtil
 	}
 
 	/**
+	 * 移除树中例如A->A的结构
 	 * 
 	 * @param tree
-	 * @return 移除树中例如A->A的结构
+	 * @return 
 	 */
 	@SuppressWarnings("unchecked")
 	public static TreeNode removeL2LRule(TreeNode tree)
@@ -75,19 +76,19 @@ public class TreeUtil
 		if (tree.getChildren().isEmpty()
 				|| (tree.getChildren().size() == 1 && tree.getChildren().get(0).getChildren().isEmpty()))
 			return tree;
+		
 		for (int i = 0; i < tree.getChildren().size(); i++)
-		{
 			removeL2LRule(tree.getChildren().get(i));
-		}
+		
 		if (tree.getChildren().size() == 1 && !tree.getChildren().get(0).getChildren().isEmpty()
 				&& tree.getNodeName().equals(tree.getChildren().get(0).getNodeName()))
 		{
 			tree.setChildren((ArrayList<TreeNode>) (tree.getChildren().get(0).getChildren()));
+			
 			for (TreeNode child : tree.getChildren())
-			{
 				child.setParent(tree);
-			}
 		}
+		
 		return tree;
 	}
 
@@ -95,8 +96,8 @@ public class TreeUtil
 	{
 		if (tree.isLeaf() || tree == null)
 			return tree;
-		tree.getLabel().setInnerScores(null);
-		tree.getLabel().setOuterScores(null);
+		tree.getAnnotation().setInnerScores(null);
+		tree.getAnnotation().setOuterScores(null);
 		for (AnnotationTreeNode child : tree.getChildren())
 		{
 			forgetScore(child);

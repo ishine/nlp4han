@@ -2,20 +2,17 @@ package org.nlp4han.coref.hobbs;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.IOException;
 import java.util.HashSet;
-import java.util.Properties;
 import java.util.Set;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.nlp4han.coref.hobbs.MentionAttribute.Animacy;
-import org.nlp4han.coref.hobbs.MentionAttribute.Gender;
+import org.nlp4han.coref.hobbs.Attribute.Animacy;
+import org.nlp4han.coref.hobbs.Attribute.Gender;
 
 import com.lc.nlp4han.constituent.BracketExpUtil;
 import com.lc.nlp4han.constituent.TreeNode;
-import org.nlp4han.coref.hobbs.MentionAttribute.Number;
+import org.nlp4han.coref.hobbs.Attribute.Number;
 
 public class TestAttributeGeneratorByDic
 {

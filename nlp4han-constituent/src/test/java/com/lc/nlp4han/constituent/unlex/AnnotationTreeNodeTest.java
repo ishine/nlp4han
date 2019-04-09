@@ -1,6 +1,5 @@
 package com.lc.nlp4han.constituent.unlex;
 
-
 import org.junit.Test;
 
 import com.lc.nlp4han.constituent.unlex.AnnotationTreeNode;
@@ -34,8 +33,9 @@ public class AnnotationTreeNodeTest
 		{
 			treeBank.addTree(sentences[i], addParentLabel);
 		}
-		GrammarExtractor gExtractor = new GrammarExtractor(treeBank, Lexicon.DEFAULT_RAREWORD_THRESHOLD);
-		Grammar g = gExtractor.getGrammar();
+		GrammarExtractor gExtractor = new GrammarExtractor();
+		Grammar g = gExtractor.extractLatentGrammar(treeBank, Lexicon.DEFAULT_RAREWORD_THRESHOLD, 0, 50, 0.5,
+				0.01);
 		GrammarSpliter.splitGrammar(g, treeBank);
 		for (AnnotationTreeNode tree : treeBank.getTreeBank())
 		{

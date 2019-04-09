@@ -5,6 +5,10 @@ import java.util.Iterator;
 
 /**
  * 句子拼写错误检测的结果
+ * 
+ * 一个检查结果包括多个SpellError。
+ * 
+ * 检测器可以返回多个可能性不同的检查结果
  */
 public class DetectResult
 {

@@ -17,7 +17,7 @@ public interface ConstituentParser
 	 *            分词序列
 	 * @param poses
 	 *            词性标记
-	 * @return
+	 * @return 不能解析返回null
 	 */
 	ConstituentTree parse(String[] words, String[] poses);
 
@@ -31,7 +31,7 @@ public interface ConstituentParser
 	 * @param k
 	 *            最好的K个结果
 	 * 
-	 * @return
+	 * @return 不能解析返回null
 	 */
 	ConstituentTree[] parse(String[] words, String[] poses, int k);
 }

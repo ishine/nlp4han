@@ -6,7 +6,8 @@ import java.util.*;
 import com.lc.nlp4han.chunk.svm.libsvm.*;
 
 /**
- * 预测类，此类不属于非原框架
+ * 预测类，此类不属于原框架
+ * 
  * @author 杨智超
  */
 class SVMPredict extends svm_predict
@@ -24,6 +25,7 @@ class SVMPredict extends svm_predict
 
 	/**
 	 * 预测，输入形如“2 1:5 3:6 ......”，返回预测结果
+	 * 
 	 * @param line
 	 *            2 1:5 3:6 ......
 	 * @param model
@@ -55,7 +57,7 @@ class SVMPredict extends svm_predict
 		}
 		else
 		{
-			
+
 			return svm.svm_predict(model, x);
 		}
 

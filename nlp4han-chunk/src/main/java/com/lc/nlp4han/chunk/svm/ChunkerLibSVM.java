@@ -1,56 +1,48 @@
 package com.lc.nlp4han.chunk.svm;
 
 import java.io.IOException;
-import com.lc.nlp4han.chunk.Chunk;
-import com.lc.nlp4han.chunk.svm.libsvm.svm;
+import java.io.InputStream;
+
 import com.lc.nlp4han.chunk.svm.libsvm.svm_model;
 
 public class ChunkerLibSVM extends ChunkerSVM
 {
 	private svm_model model = null;
-	
+
 	@Override
 	public double predictOneLine(String line, Object model) throws IOException
 	{
-		svm_model svmModel = (svm_model)model;
+		svm_model svmModel = (svm_model) model;
 		return SVMPredict.predict(line, svmModel, 0);
 	}
 
 	@Override
-	public void train(String[] arg)
+	public void train(String[] arg) throws IOException
 	{
-		try
-		{
-			svm_train.main(arg);
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
+		svm_train.main(arg);
 	}
 
 	@Override
-	public void setModel(String modelPath)
+	public void setModel(String modelPath) throws IOException
 	{
-		try
-		{
-			this.model = svm.svm_load_model(modelPath);
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
+		this.model = ModelLoadingUtil.loadLibSVMModelFromDisk(modelPath);
 	}
-	
+
 	@Override
 	public void setModel(Object model)
 	{
-		this.model = (svm_model)model;
+		this.model = (svm_model) model;
 	}
-	
+
 	@Override
 	public Object getModel()
 	{
 		return this.model;
+	}
+
+	@Override
+	public void setModel(InputStream input) throws IOException
+	{
+		this.model = ModelLoadingUtil.loadLibSVMModel(input);
 	}
 }

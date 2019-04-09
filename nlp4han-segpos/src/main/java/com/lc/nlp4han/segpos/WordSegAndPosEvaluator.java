@@ -58,7 +58,7 @@ public class WordSegAndPosEvaluator extends Evaluator<WordSegAndPosSample>{
 		String[][] acRef = reference.getAditionalContext();
 
 		//此时读取的生语料，没有分词和词性标注
-		String[] tagsandposesPre = tagger.tag(charactersRef,acRef);
+		String[] tagsandposesPre = tagger.tagAll(charactersRef,acRef);
 
 		String[] tagsPre = WordSegAndPosSample.toTag(tagsandposesPre); 
 		String[] wordsPre = WordSegAndPosSample.toWord(charactersRef, tagsandposesPre);

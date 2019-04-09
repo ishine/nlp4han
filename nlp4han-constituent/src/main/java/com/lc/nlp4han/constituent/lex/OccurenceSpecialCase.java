@@ -9,11 +9,15 @@ package com.lc.nlp4han.constituent.lex;
 public class OccurenceSpecialCase extends OccurenceCollins
 {
 	private String CCPOS = null;// 并列结构中的连词的词性标注
+	
 	private String CCword = null;// 连词
+	
 	private String leftLabel = null;// 并列结构左侧标记
 	private String rightLabel = null;// 并列结构右侧标记
+	
 	private String lheadWord = null;// 并列结构左侧的中心词
 	private String rheadWord = null;// 并列结构右侧的中心词
+	
 	private String lheadPOS = null;// 并列结构左侧的中心词词性
 	private String rheadPOS = null;// 并列结构右侧的中心词词性
 

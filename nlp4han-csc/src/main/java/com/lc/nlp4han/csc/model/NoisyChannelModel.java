@@ -5,12 +5,7 @@ import java.util.ArrayList;
 import com.lc.nlp4han.csc.util.Sentence;
 
 /**
- *<ul>
- *<li>Description: 噪音通道模型接口
- *<li>Company: HUST
- *<li>@author Sonly
- *<li>Date: 2017年10月18日
- *</ul>
+ * 噪音通道模型接口
  */
 public interface NoisyChannelModel {
 

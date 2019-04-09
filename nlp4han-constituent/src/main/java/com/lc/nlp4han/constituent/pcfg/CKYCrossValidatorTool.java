@@ -3,7 +3,6 @@ package com.lc.nlp4han.constituent.pcfg;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import com.lc.nlp4han.constituent.ConstituentMeasure;
 import com.lc.nlp4han.constituent.ConstituentParser;
@@ -22,7 +21,8 @@ public class CKYCrossValidatorTool
 {
 
 	private static ConstituentParser getParser(TrainingSampleStream<ConstituentTree> trainingSampleStream,
-			double pruneThreshold, boolean secondPrune,boolean prior) throws IOException
+			double pruneThreshold, boolean secondPrune, boolean prior, boolean segmentPrune, boolean loosePCNF)
+			throws IOException
 	{
 		ArrayList<String> bracketList = new ArrayList<String>();
 		ConstituentTree tree = trainingSampleStream.read();
@@ -31,20 +31,23 @@ public class CKYCrossValidatorTool
 			bracketList.add(tree.getRoot().toString());
 			tree = trainingSampleStream.read();
 		}
-		
+
 		System.out.println("从树库提取文法...");
 		PCFG pcfg = GrammarExtractor.getPCFG(bracketList);
 
 		System.out.println("对文法进行转换...");
-		PCFG pcnf = GrammarConvertor.PCFG2LoosePCNF(pcfg);
-		
-		if(prior) {
-			@SuppressWarnings("unchecked")
-			ArrayList<String> bracketListClone=(ArrayList<String>) bracketList.clone();
-			HashMap<String,Double> map=NonterminalProUtil.brackets2Map(bracketListClone,"pcfg");
-			pcnf=new PCFGPrior(pcnf,map);
+		if (loosePCNF)
+		{
+			PCFG pcnf = GrammarConvertor.PCFG2LoosePCNF(pcfg);
+
+			return new ConstituentParserCKYLoosePCNF(pcnf, pruneThreshold, secondPrune, prior);
 		}
-		return new ConstituentParserCKYLoosePCNF(pcnf, pruneThreshold, secondPrune,prior);
+		else
+		{
+			PCFG pcnf = GrammarConvertor.PCFG2PCNF(pcfg);
+
+			return new ConstituentParserCKYPCNF(pcnf, pruneThreshold, secondPrune, prior);
+		}
 	}
 
 	/**
@@ -59,7 +62,8 @@ public class CKYCrossValidatorTool
 	 * @throws IOException
 	 */
 	public void evaluate(ObjectStream<ConstituentTree> sampleStream, int nFolds, ConstituentMeasure measure,
-			double pruneThreshold, boolean secondPrune,boolean prior) throws IOException
+			double pruneThreshold, boolean secondPrune, boolean prior, boolean segmentPrune, boolean loosePCNF)
+			throws IOException
 	{
 		CrossValidationPartitioner<ConstituentTree> partitioner = new CrossValidationPartitioner<ConstituentTree>(
 				sampleStream, nFolds);
@@ -71,8 +75,10 @@ public class CKYCrossValidatorTool
 
 			long start = System.currentTimeMillis();
 			CrossValidationPartitioner.TrainingSampleStream<ConstituentTree> trainingSampleStream = partitioner.next();
-			ConstituentParser parser = getParser(trainingSampleStream, pruneThreshold, secondPrune,prior);
+			ConstituentParser parser = getParser(trainingSampleStream, pruneThreshold, secondPrune, prior, segmentPrune,
+					loosePCNF);
 			System.out.println("训练学习时间：" + (System.currentTimeMillis() - start) + "ms");
+			System.out.println("句法解析器：" + parser);
 
 			CKYParserEvaluator evaluator = new CKYParserEvaluator(parser);
 			evaluator.setMeasure(measure);
@@ -100,10 +106,12 @@ public class CKYCrossValidatorTool
 
 		int folds = 10;
 		File corpusFile = null;
-		String encoding = null;
+		String encoding = "UTF-8";
 		double pruneThreshold = 0.0001;
 		boolean secondPrune = false;
 		boolean prior = false;
+		boolean segmentPrune = false;// 分段剪枝，即根据句子长度确定剪枝阈值
+		boolean loosePCNF = true;
 		for (int i = 0; i < args.length; i++)
 		{
 			if (args[i].equals("-data"))
@@ -128,13 +136,19 @@ public class CKYCrossValidatorTool
 			}
 			else if (args[i].equals("-secondPrune"))
 			{
-				secondPrune = Boolean.parseBoolean(args[i + 1]);
-				i++;
+				secondPrune = true;
 			}
 			else if (args[i].equals("-prior"))
 			{
-				prior = Boolean.parseBoolean(args[i + 1]);
-				i++;
+				prior = true;
+			}
+			else if (args[i].equals("-segmentPrune"))
+			{
+				segmentPrune = true;
+			}
+			else if (args[i].equals("-pcnf"))
+			{
+				loosePCNF = false;
 			}
 		}
 
@@ -142,7 +156,7 @@ public class CKYCrossValidatorTool
 		ObjectStream<ConstituentTree> sampleStream = new ConstituentTreeStream(treeStream);
 		CKYCrossValidatorTool run = new CKYCrossValidatorTool();
 		ConstituentMeasure measure = new ConstituentMeasure();
-	
-		run.evaluate(sampleStream, folds, measure, pruneThreshold, secondPrune,prior);
+
+		run.evaluate(sampleStream, folds, measure, pruneThreshold, secondPrune, prior, segmentPrune, loosePCNF);
 	}
 }

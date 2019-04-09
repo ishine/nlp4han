@@ -2,6 +2,8 @@ package com.lc.nlp4han.csc.detecet;
 
 /**
  * 句子中的一个拼写错误
+ * 
+ * 包含错误位置和错误字
  */
 public class SpellError
 {

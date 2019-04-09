@@ -67,8 +67,19 @@ public class ChunkerWordPosParserBIEO extends AbstractChunkSampleParser
 
 				if (string.startsWith("["))
 				{
-					wordTagsInChunk.add(string.replace("[", ""));
-					isInChunk = true;
+					string = string.replace("[", "");
+					
+					if (string.contains("]"))
+					{// 只有一个词的组块
+						words.add(string.split("]")[0].split("/")[0]);
+						poses.add(string.split("]")[0].split("/")[1]);
+						chunkTags.add(string.split("]")[1] + ChunkBegin);
+					}
+					else
+					{
+						wordTagsInChunk.add(string);
+						isInChunk = true;
+					}
 				}
 				else
 				{

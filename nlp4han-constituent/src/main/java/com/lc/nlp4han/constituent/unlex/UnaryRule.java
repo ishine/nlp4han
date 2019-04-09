@@ -1,7 +1,7 @@
 package com.lc.nlp4han.constituent.unlex;
 
 import java.util.HashSet;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.TreeMap;
 
@@ -13,7 +13,7 @@ import java.util.TreeMap;
 public class UnaryRule extends Rule
 {
 	private short child;
-	private LinkedList<LinkedList<Double>> scores = new LinkedList<LinkedList<Double>>();// 保存规则例如Ai -> Bj 的概率
+	private ArrayList<ArrayList<Double>> scores = new ArrayList<ArrayList<Double>>();// 保存规则例如Ai -> Bj 的概率
 
 	public UnaryRule(short parent, short child)
 	{
@@ -27,7 +27,7 @@ public class UnaryRule extends Rule
 		this.child = child;
 		for (int i = 0; i < nSubP; i++)
 		{
-			LinkedList<Double> c = new LinkedList<Double>();
+			ArrayList<Double> c = new ArrayList<Double>();
 			for (int j = 0; j < nSubC; j++)
 			{
 				c.add(0.0);
@@ -44,13 +44,13 @@ public class UnaryRule extends Rule
 	@Override
 	public void split()
 	{
-		Random random = Grammar.random;
+		Random random = GrammarExtractor.random;
 		boolean randomPerturbation = true;
 		// split child
 		int pNumSubSymbol = scores.size();
 		for (int i = 0; i < pNumSubSymbol; i++)
 		{
-			LinkedList<Double> sameFather = scores.get(i);// Father均为A_i的scores
+			ArrayList<Double> sameFather = scores.get(i);// Father均为A_i的scores
 			int cNumSubSymbol = sameFather.size();
 			for (int j = cNumSubSymbol - 1; j >= 0; j--)
 			{
@@ -64,9 +64,10 @@ public class UnaryRule extends Rule
 		if (parent != 0)
 			for (int i = pNumSubSymbol - 1; i >= 0; i--)
 			{
-				LinkedList<Double> sameChild = new LinkedList<>(scores.get(i));
+				ArrayList<Double> sameChild = new ArrayList<>(scores.get(i));
 				scores.add(i + 1, sameChild);
 			}
+		
 		if (randomPerturbation)
 		{
 			double randomness = 1.0;
@@ -134,8 +135,8 @@ public class UnaryRule extends Rule
 			for (int indexPToMerge = nPToMerge - 1; indexPToMerge >= 0; indexPToMerge--)
 			{
 				int indexP = symbolToMerge[parent][indexPToMerge];
-				LinkedList<Double> scoresP1 = scores.get(indexP);
-				LinkedList<Double> scoresP2 = scores.get(indexP + 1);
+				ArrayList<Double> scoresP1 = scores.get(indexP);
+				ArrayList<Double> scoresP2 = scores.get(indexP + 1);
 				for (int indexC = 0; indexC < scoresP1.size(); indexC++)
 				{
 					double scoresP1ToC = scoresP1.get(indexC);
@@ -158,11 +159,6 @@ public class UnaryRule extends Rule
 		result = prime * result + child;
 		return result;
 	}
-
-	// public int chidrenHashcode()
-	// {
-	// return child;
-	// }
 
 	public boolean equals(Object obj)
 	{
@@ -188,22 +184,26 @@ public class UnaryRule extends Rule
 		this.child = child;
 	}
 
-	public LinkedList<LinkedList<Double>> getScores()
+	public double getScore(short subP, short subC)
 	{
-		return scores;
+		return scores.get(subP).get(subC);
 	}
 
-	public void setScores(LinkedList<LinkedList<Double>> score)
+	public void setScore(short subP, short subC, double score)
 	{
-		this.scores = score;
+		scores.get(subP).set(subC, score);
 	}
 
-	public boolean isSameRule(short parent, short child)
+	public void initScores(short nSubP, short nSubC)
 	{
-		if (this.parent == parent && this.child == child)
-			return true;
-		else
-			return false;
+		for (short subP = 0; subP < nSubP; subP++)
+		{
+			scores.add(new ArrayList<Double>());
+			for (short subC = 0; subC < nSubC; subC++)
+			{
+				scores.get(subP).add(0.0);
+			}
+		}
 	}
 
 	@Override
@@ -237,29 +237,21 @@ public class UnaryRule extends Rule
 					parentStr = g.symbolStrValue(parent);
 				else
 					parentStr = g.symbolStrValue(parent) + "_" + i;
+				
 				if (g.getNumSubSymbol(child) == 1)
 					childStr = g.symbolStrValue(child);
 				else
 					childStr = g.symbolStrValue(child) + "_" + j;
+				
 				String str = parentStr + " -> " + childStr + " " + scores.get(i).get(j);
 				strs[count] = str;
+				
 				count++;
 			}
 		}
 		return strs;
 	}
 
-	@Override
-	public String toStringRule(NonterminalTable nonterminalTable, short... labels)
-	{
-		if (labels.length != 2)
-			throw new Error("参数错误。");
-		String parentStr = nonterminalTable.stringValue(parent);
-		String childStr = nonterminalTable.stringValue(child);
-		String str = parentStr + "_" + labels[0] + "->" + childStr + "_" + labels[1] + " "
-				+ scores.get(labels[0]).get(labels[1]);
-		return str;
-	}
 
 	public TreeMap<String, Double> getParent_i_ScoceSum(Grammar g)
 	{

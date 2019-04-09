@@ -26,18 +26,12 @@ import com.lc.nlp4han.ml.util.PlainTextByLineStream;
 public class ChunkerSVMCrossValidatorTool
 {
 	private static final String USAGE = "Usage: ChunkAnalysisSVMCrossValidatorTool [options] -data training_set_file\n"
-			+ "options:\n" + "-encoding encoding : set encoding\n" 
-			+ "-label label : such as BIOE, BIOES\n"
-			+ "-v n : n-fold cross validation mode(default 10)\n" 
-			+ "-s svm_type : set type of SVM (default 0)\n"
-			+ "	0 -- C-SVC		(multi-class classification)\n" 
-			+ "	1 -- nu-SVC		(multi-class classification)\n"
-			+ "	2 -- one-class SVM\n" + "	3 -- epsilon-SVR	(regression)\n" 
-			+ "	4 -- nu-SVR		(regression)\n"
-			+ "-t kernel_type : set type of kernel function (default 2)\n" 
-			+ "	0 -- linear: u'*v\n"
-			+ "	1 -- polynomial: (gamma*u'*v + coef0)^degree\n" 
-			+ "	2 -- radial basis function: exp(-gamma*|u-v|^2)\n"
+			+ "options:\n" + "-encoding encoding : set encoding\n" + "-label label : such as BIOE, BIOES\n"
+			+ "-v n : n-fold cross validation mode(default 10)\n" + "-s svm_type : set type of SVM (default 0)\n"
+			+ "	0 -- C-SVC		(multi-class classification)\n" + "	1 -- nu-SVC		(multi-class classification)\n"
+			+ "	2 -- one-class SVM\n" + "	3 -- epsilon-SVR	(regression)\n" + "	4 -- nu-SVR		(regression)\n"
+			+ "-t kernel_type : set type of kernel function (default 2)\n" + "	0 -- linear: u'*v\n"
+			+ "	1 -- polynomial: (gamma*u'*v + coef0)^degree\n" + "	2 -- radial basis function: exp(-gamma*|u-v|^2)\n"
 			+ "	3 -- sigmoid: tanh(gamma*u'*v + coef0)\n"
 			+ "	4 -- precomputed kernel (kernel values in training_set_file)\n"
 			+ "-d degree : set degree in kernel function (default 3)\n"
@@ -53,11 +47,10 @@ public class ChunkerSVMCrossValidatorTool
 			+ "-wi weight : set the parameter C of class i to weight*C, for C-SVC (default 1)\n"
 			+ "-q : quiet mode (no outputs)\n";
 
-
 	public static void main(String[] args) throws IOException, InvalidInputDataException
 	{
 		int folds = 10;
-		String scheme = "BIOE";
+		String scheme = "BIEO";
 		String encoding = "UTF-8";
 		String corpusFile = null;
 		String[] trainArgs = null;
@@ -190,14 +183,12 @@ public class ChunkerSVMCrossValidatorTool
 					+ "' does not exist or is not readable, please check the path");
 			System.exit(1);
 		}
-		
+
 		trainArgsList.add(corpusFile + ".svm.cv");
 		trainArgsList.add(corpusFile + ".model.cv");
 
 		trainArgs = trainArgsList.toArray(new String[trainArgsList.size()]);
-
-		ObjectStream<String> lineStream = new PlainTextByLineStream(
-				new MarkableFileInputStreamFactory(new File(corpusFile)), encoding);
+	
 		AbstractChunkSampleParser parse = null;
 		AbstractChunkAnalysisMeasure measure = null;
 
@@ -217,15 +208,20 @@ public class ChunkerSVMCrossValidatorTool
 			measure = new ChunkAnalysisMeasureBIO();
 		}
 
+		ObjectStream<String> lineStream = new PlainTextByLineStream(
+				new MarkableFileInputStreamFactory(new File(corpusFile)), encoding);
 		ObjectStream<AbstractChunkAnalysisSample> sampleStream = new ChunkerWordPosSampleStream(lineStream, parse,
 				scheme);
-		Properties p = SVMStandardInput.getDefaultConf();
+		
+		Properties p = SVMSampleUtil.getDefaultConf();
 		ChunkAnalysisContextGenerator contextGen = new ChunkerWordPosContextGeneratorConf(p);
+		
 		ChunkerSVMCrossValidation crossValidator = new ChunkerSVMCrossValidation(trainArgs);
-		ChunkerLibSVM me = new ChunkerLibSVM();
-		crossValidator.evaluate(sampleStream, folds, me, contextGen, measure, p);
+		ChunkerLibSVM chunker = new ChunkerLibSVM();	
+		crossValidator.evaluate(sampleStream, folds, chunker, contextGen, measure, p);
 
 		sampleStream.close();
+		
 		deleteFile(trainArgs[trainArgs.length - 1]);
 		deleteFile(trainArgs[trainArgs.length - 2]);
 	}

@@ -11,9 +11,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.nlp4han.coref.hobbs.MentionAttribute.Animacy;
-import org.nlp4han.coref.hobbs.MentionAttribute.Gender;
-import org.nlp4han.coref.hobbs.MentionAttribute.Number;
+import org.nlp4han.coref.hobbs.Attribute.Animacy;
+import org.nlp4han.coref.hobbs.Attribute.Gender;
+import org.nlp4han.coref.hobbs.Attribute.Number;
 
 import com.lc.nlp4han.constituent.TreeNode;
 import com.lc.nlp4han.constituent.TreeNodeUtil;
@@ -27,12 +27,12 @@ import com.lc.nlp4han.constituent.TreeNodeUtil;
 public class AttributeGeneratorByDic implements AttributeGenerator
 {
 	private static Map<String, Properties> dictionaries = new HashMap<String, Properties>();
-	MentionAttribute attribute;
+	Attribute attribute;
 
 	@Override
-	public MentionAttribute extractAttributes(TreeNode treeNode)
+	public Attribute extractAttributes(TreeNode treeNode)
 	{
-		attribute = new MentionAttribute();
+		attribute = new Attribute();
 		attribute.setAnimacy(getAnimacy(treeNode));
 		attribute.setGender(getGender(treeNode));
 		attribute.setNumber(getNumber(treeNode));
@@ -90,7 +90,7 @@ public class AttributeGeneratorByDic implements AttributeGenerator
 			}
 			else
 			{
-				TreeNode head = TreeNodeUtil.getHead(treeNode, NPHeadRuleSetPTB.getNPRuleSet());
+				TreeNode head = TreeNodeUtil.getHead(treeNode);
 				if (head != null)
 				{
 					Properties genderDic = loadProperties("gender.properties", "utf-8");
@@ -159,7 +159,7 @@ public class AttributeGeneratorByDic implements AttributeGenerator
 		{
 			if (treeNode.getNodeName().equals("NP"))
 			{
-				TreeNode head = TreeNodeUtil.getHead(treeNode, NPHeadRuleSetPTB.getNPRuleSet());
+				TreeNode head = TreeNodeUtil.getHead(treeNode);
 				if (head == null)
 				{
 					if (result.size() < 1)
@@ -265,7 +265,7 @@ public class AttributeGeneratorByDic implements AttributeGenerator
 			}
 			else
 			{
-				TreeNode head = TreeNodeUtil.getHead(treeNode, NPHeadRuleSetPTB.getNPRuleSet());
+				TreeNode head = TreeNodeUtil.getHead(treeNode);
 				if (head != null)
 				{
 					Properties animacyDic = loadProperties("animacy.properties", "utf-8");

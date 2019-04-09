@@ -11,33 +11,37 @@ import com.lc.nlp4han.ml.ngram.utils.AbstractGramSentenceStream;
 import com.lc.nlp4han.ml.ngram.utils.Gram;
 import com.lc.nlp4han.ml.ngram.utils.StringGram;
 
-public class StringGramSentenceStream extends AbstractGramSentenceStream {
+public class StringGramSentenceStream extends AbstractGramSentenceStream
+{
 
-	public StringGramSentenceStream(String pathname, String encoding) throws FileNotFoundException, UnsupportedEncodingException {
+	public StringGramSentenceStream(String pathname, String encoding)
+			throws FileNotFoundException, UnsupportedEncodingException
+	{
 		super(pathname, encoding);
 	}
 
 	@Override
-	protected Iterator<Gram[]> createGrams(List<String> lines) {
+	protected Iterator<Gram[]> createGrams(List<String> lines)
+	{
 		List<Gram[]> list = new ArrayList<>();
-		
-		for(int i = 0; i < lines.size(); i++) {
+
+		for (int i = 0; i < lines.size(); i++)
+		{
 			String line = CommonUtils.ToDBC(lines.get(i));
 			line = line.replaceAll("\\s+", "").trim();
-			
-			if(line.equals(""))
+
+			if (line.equals(""))
 				continue;
-			
+
 			String[] strings = line.split("");
 			Gram[] grams = new Gram[strings.length];
-			
-			for(int j = 0; j < strings.length; j++) 
+
+			for (int j = 0; j < strings.length; j++)
 				grams[j] = new StringGram(strings[j]);
-			
+
 			list.add(grams);
 		}
 
 		return list.iterator();
 	}
 }
-

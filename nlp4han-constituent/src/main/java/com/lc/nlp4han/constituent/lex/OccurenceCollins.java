@@ -1,21 +1,24 @@
 package com.lc.nlp4han.constituent.lex;
+
 /**
  * 作为父类，减少在从CTB中抽取文法时的重复代码
+ * 
  * @author qyl
  *
  */
-public  class OccurenceCollins
+public class OccurenceCollins
 {
-	private String parentLabel=null;//父节点的非终结符标记
-	private String headPOS=null;//中心词词性标记,在NPB中为上一个修饰符的pos
-	private String headWord=null;//中心词,在NPB中为上一个修饰符的word
+	private String parentLabel = null;// 父节点的非终结符标记
+	private String headPOS = null;// 中心词词性标记,在NPB中为上一个修饰符的pos
+	private String headWord = null;// 中心词,在NPB中为上一个修饰符的word
+
 	public OccurenceCollins(String parentLabel, String headPOS, String headWord)
 	{
 		this.parentLabel = parentLabel;
 		this.headPOS = headPOS;
 		this.headWord = headWord;
 	}
-	
+
 	public OccurenceCollins(String parentLabel)
 	{
 		this.parentLabel = parentLabel;
@@ -31,30 +34,37 @@ public  class OccurenceCollins
 		result = prime * result + ((parentLabel == null) ? 0 : parentLabel.hashCode());
 		return result;
 	}
+
 	public String getParentLabel()
 	{
 		return parentLabel;
 	}
+
 	public void setParentLabel(String parentLabel)
 	{
 		this.parentLabel = parentLabel;
 	}
+
 	public String getHeadPOS()
 	{
 		return headPOS;
 	}
+
 	public void setHeadPOS(String headPOS)
 	{
 		this.headPOS = headPOS;
 	}
+
 	public String getHeadWord()
 	{
 		return headWord;
 	}
+
 	public void setHeadWord(String headWord)
 	{
 		this.headWord = headWord;
 	}
+
 	@Override
 	public boolean equals(Object obj)
 	{
@@ -88,10 +98,16 @@ public  class OccurenceCollins
 			return false;
 		return true;
 	}
+
 	@Override
 	public String toString()
 	{
-		return parentLabel + " "+headPOS+ " " + headWord ;
+		return parentLabel + " " + headPOS + " " + headWord;
 	}
-	
+
+	public String toReadableString()
+	{
+		return "P=" + parentLabel + ", t=" + headPOS + ", w=" + headWord;
+	}
+
 }

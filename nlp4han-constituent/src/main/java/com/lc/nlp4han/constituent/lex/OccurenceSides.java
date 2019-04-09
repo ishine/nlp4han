@@ -1,20 +1,24 @@
 package com.lc.nlp4han.constituent.lex;
+
 /**
  * 用于存储生成中心节点两侧的数据
+ * 
  * @author qyl
  *
  */
-public class OccurenceSides extends  OccurenceHeadChild
+public class OccurenceSides extends OccurenceHeadChild
 {
-	private int direction = 0;//头结点为0,左侧为1，右侧为2
-	private String sideLabel = null;//所求孩子节点的标记
-	private String sideHeadPOS=null;//所求孩子节点的中心词词标记
+	private int direction = 0;// 头结点为0,左侧为1，右侧为2
+	
+	private String sideLabel = null;// 所求孩子节点的标记
+	private String sideHeadPOS = null;// 所求孩子节点的中心词词标记
 	private String sideHeadWord;// 所求的孩子节点的中心词
-	private int  coor=0;//并列结构
-	private int  pu=0;//标点符号，由于只保留了顿号所以我们可以把它当做并列结构
-	private Distance distance=new Distance();//距离度量
 	
+	private boolean coor = false;// 并列结构
+	private boolean pu = false;// 标点符号，由于只保留了顿号所以我们可以把它当做并列结构
 	
+	private Distance distance = new Distance();// 距离度量
+
 	public OccurenceSides(String[] strs)
 	{
 		super(strs);
@@ -22,13 +26,13 @@ public class OccurenceSides extends  OccurenceHeadChild
 		this.sideLabel = strs[5];
 		this.sideHeadPOS = strs[6];
 		this.sideHeadWord = strs[7];
-		this.coor = Integer.parseInt(strs[8]);
-		this.pu = Integer.parseInt(strs[9]);
+		this.coor = Boolean.parseBoolean(strs[8]);
+		this.pu = Boolean.parseBoolean(strs[9]);
 		this.distance = new Distance(Boolean.parseBoolean(strs[10]), Boolean.parseBoolean(strs[11]));
 	}
 
 	public OccurenceSides(String headLabel, String parentLabel, String headPOS, String headWord, int direction,
-			String sideLabel, String sideHeadPOS, String sideHeadWord, int coor, int  pu, Distance distance)
+			String sideLabel, String sideHeadPOS, String sideHeadWord, boolean coor, boolean pu, Distance distance)
 	{
 		super(headLabel, parentLabel, headPOS, headWord);
 		this.direction = direction;
@@ -39,7 +43,7 @@ public class OccurenceSides extends  OccurenceHeadChild
 		this.pu = pu;
 		this.distance = distance;
 	}
-    
+
 	public int getDirection()
 	{
 		return direction;
@@ -80,22 +84,22 @@ public class OccurenceSides extends  OccurenceHeadChild
 		this.sideHeadWord = sideHeadWord;
 	}
 
-	public int getCoor()
+	public boolean isCoor()
 	{
 		return coor;
 	}
 
-	public void setCoor(int coor)
+	public void setCoor(boolean coor)
 	{
 		this.coor = coor;
 	}
 
-	public int getPu()
+	public boolean isPu()
 	{
 		return pu;
 	}
 
-	public void setPu(int pu)
+	public void setPu(boolean pu)
 	{
 		this.pu = pu;
 	}
@@ -115,10 +119,10 @@ public class OccurenceSides extends  OccurenceHeadChild
 	{
 		final int prime = 31;
 		int result = super.hashCode();
-		result = prime * result + coor;
+		result = prime * result + (coor ? 1231 : 1237);
 		result = prime * result + direction;
 		result = prime * result + ((distance == null) ? 0 : distance.hashCode());
-		result = prime * result + pu;
+		result = prime * result + (pu ? 1231 : 1237);
 		result = prime * result + ((sideHeadPOS == null) ? 0 : sideHeadPOS.hashCode());
 		result = prime * result + ((sideHeadWord == null) ? 0 : sideHeadWord.hashCode());
 		result = prime * result + ((sideLabel == null) ? 0 : sideLabel.hashCode());
@@ -175,6 +179,16 @@ public class OccurenceSides extends  OccurenceHeadChild
 	@Override
 	public String toString()
 	{
-		return super.toString()+" "+direction+" "+sideLabel+" "+sideHeadPOS+" "+ sideHeadWord+" "+coor+" "+pu+" "+distance;
+		return super.toString() + " " + direction + " " + sideLabel + " " + sideHeadPOS + " " + sideHeadWord + " "
+				+ coor + " " + pu + " " + distance;
 	}
+
+	@Override
+	public String toReadableString()
+	{
+		return super.toReadableString() + ", dir=" + direction + ", Li=" + sideLabel + ", ti=" + sideHeadPOS + ", wi=" + sideHeadWord + ", corr="
+		+ coor + ", pu=" + pu+ ", zerolen=" + distance.isAdjacency()
+		+ ", verb=" + distance.isCrossVerb();
+	}	
+	
 }

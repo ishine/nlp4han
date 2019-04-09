@@ -74,7 +74,7 @@ public class SelectSentenceTool
 		while (bracketStr.length() != 0)
 		{
 			TreeNode rootNode = BracketExpUtil.generateTree(bracketStr);
-			String[] words=TreeNodeUtil.getetWordsFromTree(rootNode);
+			String[] words=TreeNodeUtil.getetWords(rootNode);
 			if(words.length<=length) {
 				bw.append(rootNode.toString()+'\n');
 				count++;

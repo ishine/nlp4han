@@ -11,30 +11,6 @@ import org.junit.Test;
 
 public class TestEvaluation
 {
-	@Test
-	public void testConstructor_1()
-	{
-		List<Text> texts = null;
-		List<Group> actualResult = null;
-		
-		Evaluation eval = new Evaluation(texts);
-	}
-	@Test
-	public void testConstructor_2()
-	{
-		List<Text> texts = null;
-		List<Group> actualResult = null;
-		
-		Evaluation eval = new Evaluation(texts, actualResult);
-	}
-	@Test
-	public void testConstructor_3()
-	{
-		List<Text> texts = null;
-		List<Group> actualResult = null;
-		
-		Evaluation eval = new Evaluation(texts, actualResult);
-	}
 	
 	@Test
 	public void testGetExpectedResult()
@@ -73,17 +49,6 @@ public class TestEvaluation
 		assertEquals(expected, actual);
 	}
 	
-	@Test
-	public void testSetActualResult()
-	{
-		List<Text> texts = null;
-		
-		List<Group> grps = KMeans.run(texts, 2);
-		
-		Evaluation eval = new Evaluation(texts);
-		
-		eval.setActualResult(grps);  // 设置被评价的聚类结果
-	}
 	
 	@Test
 	public void testPurity_RI_FMeasures_NMI()

@@ -5,7 +5,7 @@ import java.util.List;
 import com.lc.nlp4han.constituent.TreeNode;
 
 /**
- * 过滤器接口
+ * 候选先行词结点过滤器接口
  * 
  * @author 杨智超
  *
@@ -17,14 +17,7 @@ public abstract class CandidateFilter
 	 * 
 	 * @return
 	 */
-	public abstract List<TreeNode> filter();
-
-	/**
-	 * 设置待过滤结点
-	 * 
-	 * @param treeNodes 待过滤结点
-	 */
-	public abstract void setFilteredNodes(List<TreeNode> treeNodes);
+	public abstract List<TreeNode> filter(List<TreeNode> treeNodes);
 
 	/**
 	 * 设置过滤的参考条件

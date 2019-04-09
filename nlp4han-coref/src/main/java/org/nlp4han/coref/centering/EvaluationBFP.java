@@ -2,8 +2,8 @@ package org.nlp4han.coref.centering;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
+import org.nlp4han.coref.AnaphoraResult;
 import org.nlp4han.coref.hobbs.AbstractEvaluation;
 
 import com.lc.nlp4han.constituent.BracketExpUtil;
@@ -54,7 +54,7 @@ public class EvaluationBFP extends AbstractEvaluation
 
 		}
 
-		Map<TreeNode, TreeNode> result = bfp.resolve(constituentTrees);
+		List<AnaphoraResult> result = bfp.resolve(constituentTrees);
 		
 		List<String> resultStr = toStringFormat(result, constituentTrees);
 

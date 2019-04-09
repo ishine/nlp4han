@@ -1,6 +1,7 @@
 package com.lc.nlp4han.constituent.pcfg;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,68 +15,70 @@ import com.lc.nlp4han.ml.util.FileInputStreamFactory;
 /**
  * 文法抽取工具类
  * 
- * 从树库中抽取CFG或PCFG文法
+ * 从树库中抽取PCFG文法
  * 
  */
 public class GrammarExtractor
 {
-	public static CFG getCFG(String fileName, String enCoding) throws IOException
-	{
-		return extractGrammar(fileName, enCoding, "CFG");
-	}
-
 	public static PCFG getPCFG(String fileName, String enCoding) throws IOException
 	{
-
-		return (PCFG) extractGrammar(fileName, enCoding, "PCFG");
+		return extractGrammar(fileName, enCoding);
 	}
 
-	private static CFG extractGrammar(String fileName, String enCoding, String type) throws IOException
+	/**
+	 * 由括号表达式列表直接得到PCFG
+	 */
+	public static PCFG getPCFG(ArrayList<String> bracketStrList) throws IOException
+	{
+		PCFG grammar = brackets2PCFG(bracketStrList);
+
+		return grammar;
+	}
+
+	private static PCFG extractGrammar(String fileName, String enCoding) throws IOException
+	{
+		ArrayList<String> bracketStrList = getBrackets(fileName, enCoding);
+
+		// 括号表达式生成文法
+		PCFG grammar = brackets2PCFG(bracketStrList);
+
+		return grammar;
+
+	}
+
+	private static ArrayList<String> getBrackets(String fileName, String enCoding)
+			throws IOException, FileNotFoundException
 	{
 		// 括号表达式树拼接成括号表达式String数组
 		PlainTextByTreeStream ptbt = new PlainTextByTreeStream(new FileInputStreamFactory(new File(fileName)),
 				enCoding);
 		String bracketStr = ptbt.read();
 		ArrayList<String> bracketStrList = new ArrayList<String>();
-		while (bracketStr!=null)
+		while (bracketStr != null)
 		{
 			bracketStrList.add(bracketStr);
 			bracketStr = ptbt.read();
 		}
 		ptbt.close();
-
-		// 括号表达式生成文法
-		CFG grammar = brackets2Grammar(bracketStrList, type);
-
-		return grammar;
-
+		return bracketStrList;
 	}
 
 	// 由括号表达式的list得到对应的文法集合
-	private static CFG brackets2Grammar(ArrayList<String> bracketStrList, String type) throws IOException
+	private static PCFG brackets2PCFG(ArrayList<String> bracketStrList) throws IOException
 	{
-		HashMap<PRule, Integer> ruleCounter = null;
-		CFG grammar = null;
-		if (type.contains("P"))
-		{
-			grammar = new PCFG();
-			ruleCounter = new HashMap<PRule, Integer>();
-		}
-		else
-		{
-			grammar = new CFG();
-		}
+		HashMap<String, Integer> posMap = new HashMap<String, Integer>();
+		PCFG grammar = new PCFG();
+		HashMap<PRule, Integer> ruleCounter = new HashMap<PRule, Integer>();
 
 		for (String bracketStr : bracketStrList)
 		{
 			TreeNode rootNode1 = BracketExpUtil.generateTree(bracketStr);
-			traverse(rootNode1, grammar, ruleCounter);
+			traverse(rootNode1, grammar, ruleCounter, posMap);
 		}
 
-		if (type.contains("P"))
-		{
-			ComputeProOfRule(grammar, ruleCounter);
-		}
+		computeProbOfRule(grammar, ruleCounter);
+
+		grammar.setPosProb(getPOSProb(posMap));
 
 		return grammar;
 	}
@@ -83,7 +86,8 @@ public class GrammarExtractor
 	/**
 	 * 遍历树得到基本文法
 	 */
-	private static void traverse(TreeNode node, CFG grammar, HashMap<PRule, Integer> ruleCounter)
+	private static void traverse(TreeNode node, PCFG grammar, HashMap<PRule, Integer> ruleCounter,
+			HashMap<String, Integer> posCount)
 	{
 		if (grammar.getStartSymbol() == null)
 		{// 起始符提取
@@ -96,22 +100,32 @@ public class GrammarExtractor
 			return;
 		}
 
+		if (node.getChildren().size() == 1 && node.getChild(0).isLeaf()) // 词性标注提取
+		{
+			String string = node.getNodeName();
+			if (posCount.keySet().contains(string))
+			{
+				posCount.put(string, posCount.get(string) + 1);
+			}
+			else
+			{
+				posCount.put(string, 1);
+			}
+		}
 		grammar.addNonTerminal(node.getNodeName());// 非终结符提取
 
 		if (node.getChildren() != null && node.getChildren().size() > 0)
 		{
-			RewriteRule rule = new RewriteRule(node.getNodeName(), node.getChildren());
-			if (grammar instanceof PCFG)
-			{
-				rule = new PRule(rule, 0);
-				addRuleCount((PRule) rule, ruleCounter);
-			}
+			RewriteRule R = new RewriteRule(node.getNodeName(), node.getChildren());
+			PRule rule = new PRule(R, 0);
+
+			addRuleCount(rule, ruleCounter);
 
 			grammar.add(rule);// 添加规则
 
 			for (TreeNode node1 : node.getChildren())
 			{// 深度优先遍历
-				traverse(node1, grammar, ruleCounter);
+				traverse(node1, grammar, ruleCounter, posCount);
 			}
 		}
 	}
@@ -128,19 +142,19 @@ public class GrammarExtractor
 		}
 	}
 
-	private static void ComputeProOfRule(CFG grammar, HashMap<PRule, Integer> ruleCounter)
+	private static void computeProbOfRule(PCFG grammar, HashMap<PRule, Integer> ruleCounter)
 	{
 		for (String nonTer : grammar.getNonTerminalSet())
 		{
-			Set<RewriteRule> set = grammar.getRuleBylhs(nonTer);
+			Set<RewriteRule> ruleSet = grammar.getRuleByLHS(nonTer);
 			int allNum = 0;
-			for (RewriteRule rule : set)
+			for (RewriteRule rule : ruleSet)
 			{
 				PRule pr = (PRule) rule;
 				allNum += ruleCounter.get(pr);
 			}
 
-			for (RewriteRule rule : set)
+			for (RewriteRule rule : ruleSet)
 			{
 				PRule pr = (PRule) rule;
 				pr.setProb(1.0 * ruleCounter.get(rule) / allNum);
@@ -149,12 +163,28 @@ public class GrammarExtractor
 	}
 
 	/**
-	 * 由括号表达式列表直接得到PCFG
+	 * 由词性标注计数器得到词性标注概率
+	 * 
+	 * @param posCount
+	 * @return
 	 */
-	public static PCFG getPCFG(ArrayList<String> bracketStrList) throws IOException
+	private static HashMap<String, Double> getPOSProb(HashMap<String, Integer> posCount)
 	{
-		CFG grammar = brackets2Grammar(bracketStrList, "PCFG");
+		int sum = 0;
+		HashMap<String, Double> map1 = new HashMap<String, Double>();
+		for (String str : posCount.keySet())
+		{
+			sum += posCount.get(str);
+		}
 
-		return (PCFG) grammar;
+		for (String str : posCount.keySet())
+		{
+
+			double pro = 1.0 * posCount.get(str) / sum;
+			map1.put(str, pro);
+		}
+
+		return map1;
 	}
+
 }

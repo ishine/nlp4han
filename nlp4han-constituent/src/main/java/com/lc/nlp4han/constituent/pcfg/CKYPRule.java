@@ -31,8 +31,8 @@ public class CKYPRule extends PRule
 
 	public CKYPRule(PRule prule, int k, int i, int j)
 	{
-		super.setlhs(prule.getLhs());
-		super.setRhs(prule.getRhs());
+		super.setLHS(prule.getLHS());
+		super.setRHS(prule.getRHS());
 		super.setProb(prule.getProb());
 		this.k = k;
 		this.i = i;

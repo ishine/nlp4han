@@ -83,27 +83,22 @@ public class RewriteRule
 		}
 	}
 
-	public void setLhs(String lhs)
+	public void setLHS(String lhs)
 	{
 		this.lhs = lhs;
 	}
 
-	public String getLhs()
+	public String getLHS()
 	{
 		return lhs;
 	}
 
-	public void setlhs(String lhs)
-	{
-		this.lhs = lhs;
-	}
-
-	public ArrayList<String> getRhs()
+	public ArrayList<String> getRHS()
 	{
 		return rhs;
 	}
 
-	public void setRhs(ArrayList<String> rhs)
+	public void setRHS(ArrayList<String> rhs)
 	{
 		this.rhs = rhs;
 	}

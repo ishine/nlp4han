@@ -6,12 +6,13 @@ import java.util.List;
 import com.lc.nlp4han.constituent.TreeNode;
 
 /**
- * @author 王宁 表示节点是Annotation的树
+ * 带标记的成分树结点
+ * 
+ * @author 王宁 
  */
 public class AnnotationTreeNode extends TreeNode
 {
-	// public static NonterminalTable nonterminalTable = new NonterminalTable();
-	private Annotation label;
+	private Annotation annotation;
 
 	private AnnotationTreeNode()
 	{
@@ -19,7 +20,7 @@ public class AnnotationTreeNode extends TreeNode
 
 	private AnnotationTreeNode(Annotation label)
 	{
-		this.label = label;
+		this.annotation = label;
 	}
 
 	public static AnnotationTreeNode getInstance()
@@ -29,15 +30,16 @@ public class AnnotationTreeNode extends TreeNode
 
 	public static AnnotationTreeNode getInstance(TreeNode tree, NonterminalTable nonterminalTable)
 	{
+		if (tree == null)
+		{
+			return null;
+		}
 
 		if (tree instanceof AnnotationTreeNode)
 		{
 			return (AnnotationTreeNode) tree;
 		}
-		if (tree == null)
-		{
-			return null;
-		}
+			
 		if (tree.getNodeName() == null)
 		{
 			return null;
@@ -47,6 +49,7 @@ public class AnnotationTreeNode extends TreeNode
 		{
 			return new AnnotationTreeNode(new Annotation(tree.getNodeName()));
 		}
+		
 		short intValueOfLabel;
 		if (nonterminalTable.hasSymbol(tree.getNodeName()))
 		{
@@ -65,16 +68,20 @@ public class AnnotationTreeNode extends TreeNode
 
 		AnnotationTreeNode annotationTree = new AnnotationTreeNode(new Annotation(intValueOfLabel, (short) 1));
 		annotationTree.setNewName(null);
+		
 		ArrayList<AnnotationTreeNode> tempChildren = new ArrayList<AnnotationTreeNode>(tree.getChildren().size());
 		for (TreeNode child : tree.getChildren())
 		{
 			AnnotationTreeNode newChild = getInstance(child, nonterminalTable);
+			
 			newChild.setParent(annotationTree);
 			tempChildren.add(newChild);
 		}
+		
 		for (int i = 0; i < tempChildren.size(); i++)
 			annotationTree.addChild(tempChildren.get(i));
-		return annotationTree.setSpanFT();
+		
+		return annotationTree.setSpan();
 	}
 
 	public boolean isPreterminal()
@@ -85,43 +92,50 @@ public class AnnotationTreeNode extends TreeNode
 			return false;
 	}
 
+	// 清空树的内外概率
 	public AnnotationTreeNode forgetIOScoreAndScale()
 	{
 		if (this.isLeaf() || this == null)
 			return this;
-		label.setInnerScores(null);
-		label.setOuterScores(null);
-		label.setInnerScale(0);
-		label.setOuterScale(0);
+		
+		annotation.setInnerScores(null);
+		annotation.setOuterScores(null);
+		annotation.setInnerScale(0);
+		annotation.setOuterScale(0);
+		
 		for (AnnotationTreeNode child : this.getChildren())
 		{
 			child.forgetIOScoreAndScale();
 		}
+		
 		return this;
 	}
 
-	public AnnotationTreeNode setSpanFT()
+	private AnnotationTreeNode setSpan()
 	{
-		getSpanFTHelper(0);
+		setSpanFTHelper(0);
+		
 		return this;
 	}
 
-	private int getSpanFTHelper(int count)
+	private int setSpanFTHelper(int count)
 	{
 		if (this.isPreterminal())
 		{
 
-			this.label.setSpanFrom((short) count);
-			this.label.setSpanTo((short) (count + 1));
+			this.annotation.setSpanFrom((short) count);
+			this.annotation.setSpanTo((short) (count + 1));
 			return count + 1;
 		}
 
 		for (AnnotationTreeNode child : getChildren())
 		{
-			count = child.getSpanFTHelper(count);
+			count = child.setSpanFTHelper(count);
 		}
-		this.label.setSpanFrom(this.getFirstChild().getLabel().getSpanFrom());
-		this.label.setSpanTo(this.getLastChild().getLabel().getSpanTo());
+		
+		this.annotation.setSpanFrom(this.getFirstChild().getAnnotation().getSpanFrom());
+		this.annotation.setSpanTo(this.getLastChild().getAnnotation().getSpanTo());
+		
 		return count;
 	}
 
@@ -158,9 +172,9 @@ public class AnnotationTreeNode extends TreeNode
 	public String getNodeName(NonterminalTable nonterminalTable)
 	{
 		if (isLeaf())
-			return label.getWord();
+			return annotation.getWord();
 		else
-			return nonterminalTable.stringValue(label.getSymbol());
+			return nonterminalTable.stringValue(annotation.getSymbol());
 	}
 
 	@SuppressWarnings("unchecked")
@@ -170,13 +184,13 @@ public class AnnotationTreeNode extends TreeNode
 		return (List<AnnotationTreeNode>) super.getChildren();
 	}
 
-	public Annotation getLabel()
+	public Annotation getAnnotation()
 	{
-		return label;
+		return annotation;
 	}
 
-	public void setLabel(Annotation label)
+	public void setAnnotation(Annotation label)
 	{
-		this.label = label;
+		this.annotation = label;
 	}
 }

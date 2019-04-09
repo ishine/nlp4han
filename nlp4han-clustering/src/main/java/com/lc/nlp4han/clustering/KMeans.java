@@ -1,93 +1,80 @@
 package com.lc.nlp4han.clustering;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
+// KMeans扁平聚类
 public class KMeans
 {
-	private static final int TIMES = 100;
-	
+	private static final int TIMES = 5000;
+
 	public static List<Group> run(List<Text> texts, int k)
 	{
-		if (texts==null || k<1 || texts.size()<k)
+		if (texts == null || k < 1 || texts.size() < k)
 			throw new RuntimeException("参数错误！");
- 
-		List<Group> groups = new ArrayList<Group>();
-		
-		boolean exitFlag = true;
-		
-		FeatureGenerator fg = new WordBasedFeatureGenerator();
-		fg.init(texts);
-		SampleGenerator sg = new VectorSampleGenerator();
-		sg.init(fg);
-		DistanceCalculator distance = new DistanceCalculator();
-		distance.setSampleGenerator(sg);
-		
-		for (int i=0 ; i<texts.size() ; i++)
+
+		FeatureGenerator fg = new WordBasedZeroOneFeatureGenerator();
+		if (!fg.isInitialized())
+			fg.init(texts);
+
+		DistanceCalculator distCalc = new DistanceCalculatorJaccard();
+
+		for (int i = 0; i < texts.size(); i++)
 		{
 			Text t = texts.get(i);
-			Sample s = sg.getSample(t, fg);
+			Sample s = new Sample(fg.getFeatures(t));
 			t.setSample(s);
 		}
-		
-		// 随机初始化
-		Random random = new Random();
-		List<Integer> randomValues = new ArrayList<Integer>();
-		
-		for (int i=0 ; i<k ; i++)
+
+		DistanceRecode dr = new DistanceRecode(texts, distCalc);
+
+		UpdateGroupCenter ugc = new PAMUpateGroupCenter(dr);
+
+		Initialization init = new RandomInitialization();
+		List<Group> groups = init.initialize(texts, k);
+
+		int iterationTimes = 0;
+		for (; iterationTimes < TIMES; iterationTimes++)
 		{
-			int r = random.nextInt(texts.size());
-			if (randomValues.contains(r) || r<0)
+			for (int j = 0; j < k; j++)
 			{
-				i--;
-				continue;
+				groups.get(j).clear();
 			}
-			randomValues.add(r);
-		}
-		
-		for (int i=0 ; i<k ; i++)
-		{
-			Group g = new Group();
-			g.setCenter(texts.get(randomValues.get(i)).getSample().clone());
-			groups.add(g);
-		}
-		
-		for (int i=0 ; i<TIMES ; i++)
-		{
-			for (int j=0 ; j<k ; j++)
+
+			for (int j = 0; j < texts.size(); j++)
 			{
-					groups.get(j).clear();
-			}
-			
-			for (int j=0 ; j<texts.size() ; j++)
-			{
-				int index = minDistanceGroup(texts.get(j), groups, distance);
+				int index = minDistanceGroup(texts.get(j), groups, distCalc);
 				groups.get(index).addMember(texts.get(j));
 			}
-			
-			for (int j=0 ; j<k ; j++)
-			{
-				if (groups.get(j).updateCenter())
-					exitFlag = false;
-			}
-			
-			if (exitFlag)
+
+			if (!ugc.updateCenter(groups))
 				break;
-			else
-				exitFlag = true;
+
 		}
+
+		if (iterationTimes > TIMES)
+			System.out.println("共迭代：" + (iterationTimes - 1) + "次");
+		else
+			System.out.println("共迭代：" + iterationTimes + "次");
 		return groups;
 	}
-	
-	private static int minDistanceGroup(Text t, List<Group> grps, DistanceCalculator d)
+
+	// 和文本最近的簇
+	private static int minDistanceGroup(Text t, List<Group> groups, DistanceCalculator d)
 	{
 		double min = Double.POSITIVE_INFINITY;
 		int index = -1;
-		for (int i=0 ; i<grps.size() ; i++)
+		for (int i = 0; i < groups.size(); i++)
 		{
-			double distance = d.getDistance(t, grps.get(i));
-			if (distance < min)
+			double distance = d.getDistance(t, groups.get(i));
+			
+			if (distance-min<0.00001 && distance-min>-0.00001)
+			{
+				if (groups.get(i).size() < groups.get(index).size())
+				{
+					index = i;
+				}
+			}
+			else if (distance < min)
 			{
 				min = distance;
 				index = i;
@@ -95,5 +82,5 @@ public class KMeans
 		}
 		return index;
 	}
-	
+
 }

@@ -38,13 +38,9 @@ public class Lexicon
 		init(dictionary);
 	}
 
-	public Lexicon(ArrayList<Short> tagWithRareWord, ArrayList<Integer> rareWordCount, int allRareWord)
+	public Lexicon()
 	{
 		this.preRules = new HashSet<PreterminalRule>();
-		// this.tagWithRareWord = tagWithRareWord;
-		// this.rareWordCount = rareWordCount;
-		// this.allRareWord = allRareWord;
-		// this.scores = new double[tagWithRareWord.size()];
 		this.dictionary = new HashMap<>();
 	}
 
@@ -76,6 +72,11 @@ public class Lexicon
 	public boolean hasRecorded(String word)
 	{
 		return dictionary.containsKey(word);
+	}
+
+	public int wordIntValue(String word)
+	{
+		return dictionary.get(word);
 	}
 
 	public HashMap<String, Integer> getDictionary()

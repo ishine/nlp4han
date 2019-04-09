@@ -52,7 +52,7 @@ public abstract class Rule
 
 	public abstract String[] toStringRules(Grammar g);
 
-	public abstract String toStringRule(NonterminalTable nonterminalTable, short... labels);
+//	public abstract String toStringRule(NonterminalTable nonterminalTable, short... labels);
 
 	public short getParent()
 	{

@@ -36,7 +36,7 @@ public class Feature
 	@Override
 	public String toString()
 	{
-		return "key=" + key + ", value=" + value;
+		return "(key=" + key + ", value=" + value + ")";
 	}
 
 	@Override
@@ -71,6 +71,13 @@ public class Feature
 		if (Double.doubleToLongBits(value) != Double.doubleToLongBits(other.value))
 			return false;
 		return true;
+	}
+
+	@Override
+	protected Feature clone()
+	{
+		Feature result = new Feature(key, value);
+		return  result;
 	}
 	
 	

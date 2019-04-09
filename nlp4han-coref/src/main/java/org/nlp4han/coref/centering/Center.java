@@ -3,6 +3,8 @@ package org.nlp4han.coref.centering;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.nlp4han.coref.sieve.Mention;
+
 /**
  * 中心数值（Cb、Cf、Cp）
  * 
@@ -11,34 +13,34 @@ import java.util.List;
  */
 public class Center
 {
-	private Entity Cb; // 回指中心（backward looking center）
-	private List<Entity> Cf; // 下指中心（forward looking center）
-	private Entity Cp; // 优选中心（preferred center）
+	private Mention Cb; // 回指中心（backward looking center）
+	private List<Mention> Cf; // 下指中心（forward looking center）
+	private Mention Cp; // 优选中心（preferred center）
 
 	/**
-	 * 通过会话中的实体集和将其中的代词替换成先行词后的实体集创建会话的Center类
+	 * 通过会话中的提及集和将其中的代词替换成先行词后的提及集创建会话的Center类
 	 * 
-	 * @param entities
-	 * @param newEntities
+	 * @param mentions
+	 * @param newMentions
 	 */
-	public Center(List<Entity> entities, List<Entity> newEntities)
+	public Center(List<Mention> mentions, List<Mention> newMentions)
 	{// 注意：参数不能为null，当两个参数相等时，为第一句话，Cb为undefined(null) 此处需修改
-		generateCf(newEntities);
-		generateCb(entities, newEntities);
-		generateCp(entities, newEntities);
+		generateCf(mentions);
+		generateCb(mentions, newMentions);
+		generateCp(mentions, newMentions);
 	}
 
-	public Entity getCb()
+	public Mention getCb()
 	{
 		return Cb;
 	}
 
-	public List<Entity> getCf()
+	public List<Mention> getCf()
 	{
 		return Cf;
 	}
 
-	public Entity getCp()
+	public Mention getCp()
 	{
 		return Cp;
 	}
@@ -46,21 +48,21 @@ public class Center
 	/**
 	 * 生成回指中心Cb
 	 * 
-	 * @param entities
-	 * @param newEntities
+	 * @param mentions
+	 * @param newMentions
 	 */
-	public void generateCb(List<Entity> entities, List<Entity> newEntities)
+	public void generateCb(List<Mention> mentions, List<Mention> newMentions)
 	{
-		if (!entities.equals(newEntities))
+		if (!mentions.equals(newMentions))
 		{
-			List<Entity> anaphorEntities = new ArrayList<Entity>();
-			for (int i = 0; i < newEntities.size(); i++)
+			List<Mention> anaphorMentions = new ArrayList<Mention>();
+			for (int i = 0; i < newMentions.size(); i++)
 			{
-				if (!entities.get(i).equals(newEntities.get(i)))
-					anaphorEntities.add(newEntities.get(i));
+				if (!mentions.get(i).equals(newMentions.get(i)))
+					anaphorMentions.add(newMentions.get(i));
 			}
 
-			List<Entity> es = Entity.sort(anaphorEntities);
+			List<Mention> es = MentionUtil.GrammaticalRoleBasedSort(anaphorMentions);
 			if (es != null && es.size() > 0)
 				Cb = es.get(0);
 			else
@@ -74,28 +76,28 @@ public class Center
 	/**
 	 * 生成下指中心Cf
 	 * 
-	 * @param newEntity
+	 * @param newMention
 	 */
-	public void generateCf(List<Entity> newEntities)
+	public void generateCf(List<Mention> mentions)
 	{
-		if (newEntities == null)
+		if (mentions == null)
 			throw new RuntimeException("输入不能为null");
-		Cf = newEntities;
+		Cf = mentions;
 	}
 
 	/**
 	 * 生成优选中心Cp
 	 * 
-	 * @param newEntities
-	 * @param entities
+	 * @param newMentions
+	 * @param mentions
 	 */
-	public void generateCp(List<Entity> entities, List<Entity> newEntities)
+	public void generateCp(List<Mention> mentions, List<Mention> newMentions)
 	{
 		if (Cf == null || Cf.size() < 1)
 			throw new RuntimeException("Cf错误");
-		List<Entity> e = Entity.sort(entities);
-		int index = entities.indexOf(e.get(0));
-		Cp = newEntities.get(index);
+		List<Mention> e = MentionUtil.GrammaticalRoleBasedSort(mentions);
+		int index = mentions.indexOf(e.get(0));
+		Cp = newMentions.get(index);
 	}
 
 	@Override
@@ -107,15 +109,21 @@ public class Center
 			StringBuilder strbCf = new StringBuilder();
 			strbCf.append("(");
 			boolean isFirst = true;
-			for (Entity e : Cf)
+			for (Mention e : Cf)
 			{
 				if (isFirst)
 				{
-					strbCf.append(e.getEntityName());
+					if (e.getAntecedent() == null)
+						strbCf.append(e.getHead());
+					else
+						strbCf.append(e.getAntecedent().getHead());
 					isFirst = false;
 					continue;
 				}
-				strbCf.append(", " + e.getEntityName());
+				if (e.getAntecedent() == null)
+					strbCf.append(", " + e.getHead());
+				else
+					strbCf.append(", " + e.getAntecedent().getHead());
 			}
 			strbCf.append(")");
 			strCf = strbCf.toString();
@@ -123,9 +131,19 @@ public class Center
 		else
 			strCf = "( )";
 		if (Cb != null)
-			return "[Cb=" + Cb.getEntityName() + ", Cf=" + strCf + ", Cp=" + Cp.getEntityName() + "]";
+		{
+			String strCb, strCp;
+			strCb = Cb.getAntecedent()==null ? Cb.getHead() : Cb.getAntecedent().getHead();
+			strCp = Cp.getAntecedent()==null ? Cp.getHead() : Cp.getAntecedent().getHead();
+			
+			return "[Cb=" + strCb + ", Cf=" + strCf + ", Cp=" + strCp + "]";
+		}
 		else
-			return "[Cf=" + strCf + ", Cp=" + Cp.getEntityName() + "]";
+		{
+			String strCp;
+			strCp = Cp.getAntecedent()==null ? Cp.getHead() : Cp.getAntecedent().getHead();
+			return "[Cf=" + strCf + ", Cp=" + strCp + "]";
+		}
 	}
 
 }

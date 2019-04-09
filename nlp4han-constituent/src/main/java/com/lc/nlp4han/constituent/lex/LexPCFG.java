@@ -1,13 +1,14 @@
 package com.lc.nlp4han.constituent.lex;
 
-import java.io.BufferedReader;
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+
+import com.lc.nlp4han.constituent.GrammarWritable;
 
 /**
  * 中心词驱动的上下无关文法（Collins Model1）
@@ -15,7 +16,7 @@ import java.util.Set;
  * @author qyl
  *
  */
-public class LexPCFG
+public class LexPCFG implements GrammarWritable
 {
 	// 句法树的起始符，该值为预处理句子时设置的起始符ROOT
 	private String StartSymbol = null;
@@ -24,32 +25,35 @@ public class LexPCFG
 	private HashSet<String> posSet = new HashSet<String>();
 
 	// 词性标注和词，以及数目
-	private HashMap<WordAndPOS, Integer> wordMap = new HashMap<WordAndPOS, Integer>();
+	private HashMap<WordPOS, Integer> wordMap = new HashMap<WordPOS, Integer>();
+
 	// 词在训练集中的pos集合
 	private HashMap<String, HashSet<String>> posesOfWord = new HashMap<String, HashSet<String>>();
 
 	// P(H|P,t,w)）相关的统计数据
-	private HashMap<OccurenceCollins, AmountAndSort> headGenMap = new HashMap<OccurenceCollins, AmountAndSort>();
+	private HashMap<OccurenceCollins, RuleAmountsInfo> headGenMap = new HashMap<OccurenceCollins, RuleAmountsInfo>();
+
 	private HashMap<OccurenceCollins, HashSet<String>> parentList = new HashMap<OccurenceCollins, HashSet<String>>();
 
 	// 用于生成SidesChild(包含其中心word和pos)相关统计数据
-	private HashMap<OccurenceCollins, AmountAndSort> sidesGenMap = new HashMap<OccurenceCollins, AmountAndSort>();
+	private HashMap<OccurenceCollins, RuleAmountsInfo> sidesGenMap = new HashMap<OccurenceCollins, RuleAmountsInfo>();
 
 	// 用于生成Stop的相关统计数据
-	private HashMap<OccurenceCollins, AmountAndSort> stopGenMap = new HashMap<OccurenceCollins, AmountAndSort>();
+	private HashMap<OccurenceCollins, RuleAmountsInfo> stopGenMap = new HashMap<OccurenceCollins, RuleAmountsInfo>();
 
 	// 用于生成并列结构连词（如CC或者逗号和冒号,为简略，我将生成修饰符pos和生成修饰符word都放入此规则
-	private HashMap<OccurenceCollins, AmountAndSort> specialGenMap = new HashMap<OccurenceCollins, AmountAndSort>();
+	private HashMap<OccurenceCollins, RuleAmountsInfo> specialGenMap = new HashMap<OccurenceCollins, RuleAmountsInfo>();
 
 	public LexPCFG()
 	{
-
 	}
-    
-	public LexPCFG(String startSymbol, HashSet<String> posSet, HashMap<WordAndPOS, Integer> wordMap,
-			HashMap<String, HashSet<String>> posesOfWord, HashMap<OccurenceCollins, AmountAndSort> headGenMap,
-			HashMap<OccurenceCollins, HashSet<String>> parentList, HashMap<OccurenceCollins, AmountAndSort> sidesGenMap,
-			HashMap<OccurenceCollins, AmountAndSort> stopGenMap, HashMap<OccurenceCollins, AmountAndSort> specialGenMap)
+
+	public LexPCFG(String startSymbol, HashSet<String> posSet, HashMap<WordPOS, Integer> wordMap,
+			HashMap<String, HashSet<String>> posesOfWord, HashMap<OccurenceCollins, RuleAmountsInfo> headGenMap,
+			HashMap<OccurenceCollins, HashSet<String>> parentList,
+			HashMap<OccurenceCollins, RuleAmountsInfo> sidesGenMap,
+			HashMap<OccurenceCollins, RuleAmountsInfo> stopGenMap,
+			HashMap<OccurenceCollins, RuleAmountsInfo> specialGenMap)
 	{
 		this.StartSymbol = startSymbol;
 		this.posSet = posSet;
@@ -60,98 +64,6 @@ public class LexPCFG
 		this.sidesGenMap = sidesGenMap;
 		this.stopGenMap = stopGenMap;
 		this.specialGenMap = specialGenMap;
-	}
-
-	/**
-	 * 从流中读取数据
-	 * 
-	 * @param in
-	 * @param encoding
-	 * @throws IOException
-	 */
-	public LexPCFG(InputStream in, String encoding) throws IOException
-	{
-		BufferedReader buffer = new BufferedReader(new InputStreamReader(in, encoding));
-		String str = buffer.readLine().trim();
-		if (str.equals("--起始符--"))
-		{
-			setStartSymbol(buffer.readLine().trim());
-		}
-		buffer.readLine();
-		str = buffer.readLine().trim();
-		while (!str.equals("--POS-Word集--"))
-		{// 添加词性标注集
-			posSet.add(str);
-			str = buffer.readLine().trim();
-		}
-		str = buffer.readLine();
-		while (!str.equals("--生成头结点的规则集--"))
-		{// POS-Word集
-			String[] strs = str.split(" ");
-			wordMap.put(new WordAndPOS(strs[0], strs[1]), Integer.parseInt(strs[2]));
-			str = buffer.readLine().trim();
-		}
-		str = buffer.readLine();
-		while (!str.equals("--头结点向上延伸的标记集--"))
-		{// 生成头结点的规则集
-			String[] strs = str.split(" ");
-			int amount = Integer.parseInt(strs[strs.length - 2]);
-			int sort = Integer.parseInt(strs[strs.length - 1]);
-			headGenMap.put(new OccurenceHeadChild(strs), new AmountAndSort(amount, sort));
-			str = buffer.readLine();
-		}
-		str = buffer.readLine();
-		while (!str.equals("--生成两侧孩子的规则集--"))
-		{// 头结点向上延伸的标记集
-			String[] strs = str.split(" ");
-			HashSet<String> set = new HashSet<String>();
-			for (int i = 4; i < strs.length; i++)
-			{
-				set.add(strs[i]);
-			}
-			parentList.put(new OccurenceHeadChild(strs), set);
-			str = buffer.readLine();
-		}
-		str = buffer.readLine();
-		while (!str.equals("--生成两侧Stop的规则集--"))
-		{// 生成两侧孩子的规则集
-			String[] strs = str.split(" ");
-			int amount = Integer.parseInt(strs[strs.length - 2]);
-			int sort = Integer.parseInt(strs[strs.length - 1]);
-			sidesGenMap.put(new OccurenceSides(strs), new AmountAndSort(amount, sort));
-			str = buffer.readLine();
-		}
-		str = buffer.readLine();
-		while (!str.equals("--特殊规则集--"))
-		{// 生成两侧Stop的规则集
-			String[] strs = str.split(" ");
-			int amount = 1;
-			try
-			{
-				amount = Integer.parseInt(strs[strs.length - 2]);
-			}
-			catch (ArrayIndexOutOfBoundsException e)
-			{
-				for (String str1 : strs)
-				{
-					System.out.print(str1);
-				}
-			}
-			int sort = Integer.parseInt(strs[strs.length - 1]);
-			stopGenMap.put(new OccurenceStop(strs), new AmountAndSort(amount, sort));
-			str = buffer.readLine();
-		}
-		str = buffer.readLine();
-		while (str != null)
-		{// 特殊规则集
-			System.out.println("空的出现错误");
-			String[] strs = str.split(" ");
-			int amount = Integer.parseInt(strs[strs.length - 2]);
-			int sort = Integer.parseInt(strs[strs.length - 1]);
-			specialGenMap.put(new OccurenceSpecialCase(strs), new AmountAndSort(amount, sort));
-			str = buffer.readLine();
-		}
-		buffer.close();
 	}
 
 	/**
@@ -170,7 +82,7 @@ public class LexPCFG
 	 * @param word
 	 * @return
 	 */
-	public HashSet<String> getposSetByword(String word)
+	public HashSet<String> getPosSetByword(String word)
 	{
 		return posesOfWord.get(word);
 	}
@@ -186,40 +98,13 @@ public class LexPCFG
 	}
 
 	/**
-	 * 获取概率的通用方法
-	 * 
-	 * @param rule
-	 * @param type
-	 * @return
-	 */
-	public double getGeneratePro(OccurenceCollins rule, String type)
-	{
-		if (type.equals("head"))
-		{
-			return getProForGenerateHead((OccurenceHeadChild) rule);
-		}
-		else if (type.equals("sides"))
-		{
-			return getProForGenerateSides((OccurenceSides) rule);
-		}
-		else if (type.equals("stop"))
-		{
-			return getProForGenerateStop((OccurenceStop) rule);
-		}
-		else
-		{
-			return getProForSpecialCase((OccurenceSpecialCase) rule);
-		}
-	}
-
-	/**
-	 * 得到P（H|P,(pos,word)）的概率/可以用于计算单元规则的概率
+	 * 得到P（H|P,(t,w)）的概率/可以用于计算单元规则的概率
 	 * 
 	 * @return
 	 */
-	private double getProForGenerateHead(OccurenceHeadChild rhcg)
+	public double getProbForGenerateHead(OccurenceHeadChild rhcg)
 	{
-		return getProOfBackOff(rhcg, headGenMap, "head");
+		return getProbOfBackOff(rhcg, headGenMap, "head");
 	}
 
 	/**
@@ -228,9 +113,9 @@ public class LexPCFG
 	 * @param rsg
 	 * @return
 	 */
-	private double getProForGenerateStop(OccurenceStop rsg)
+	public double getProbForGenerateStop(OccurenceStop rsg)
 	{
-		return getProOfBackOff(rsg, stopGenMap, "stop");
+		return getProbOfBackOff(rsg, stopGenMap, "stop");
 	}
 
 	/**
@@ -239,7 +124,7 @@ public class LexPCFG
 	 * @param sidesRule
 	 * @return
 	 */
-	private double getProForGenerateSides(OccurenceSides sr)
+	public double getProbForGenerateSides(OccurenceSides sr)
 	{
 		// 需要进行平滑运算将其分为两部分
 		String parentLabel = sr.getParentLabel();// 父节点的非终结符标记
@@ -250,15 +135,15 @@ public class LexPCFG
 		String sideLabel = sr.getSideLabel();// 所求孩子节点的标记
 		String sideHeadPOS = sr.getSideHeadPOS();// 所求孩子节点的中心词词标记
 		String sideHeadWord = sr.getSideHeadWord();// 所求的孩子节点的中心词
-		int coor = sr.getCoor();// 并列结构
-		int pu = sr.getPu();// 标点符号，由于只保留了顿号所以我们可以把它当做并列结构
+		boolean coor = sr.isCoor();// 并列结构
+		boolean pu = sr.isPu();// 标点符号，由于只保留了顿号所以我们可以把它当做并列结构
 		Distance distance = sr.getDistance();// 距离度量
 
 		OccurenceSides rule1 = new OccurenceSides(headLabel, parentLabel, headPOS, headWord, direction, sideLabel,
 				sideHeadPOS, null, coor, pu, distance);
 		OccurenceSides rule2 = new OccurenceSides(headLabel, parentLabel, headPOS, headWord, direction, sideLabel,
 				sideHeadPOS, sideHeadWord, coor, pu, distance);
-		return getProOfBackOff(rule1, sidesGenMap, "1side") * getProOfBackOff(rule2, sidesGenMap, "2side");
+		return getProbOfBackOff(rule1, sidesGenMap, "1side") * getProbOfBackOff(rule2, sidesGenMap, "2side");
 	}
 
 	/**
@@ -268,42 +153,42 @@ public class LexPCFG
 	 * @param specialRule
 	 * @return
 	 */
-	private double getProForSpecialCase(OccurenceSpecialCase specialRule)
+	public double getProbForSpecialCase(OccurenceSpecialCase specialRule)
 	{
-		return getProOfBackOff(specialRule, specialGenMap, "special");
+		return getProbOfBackOff(specialRule, specialGenMap, "special");
 	}
 
 	/**
 	 * 通过回退模型得到概率
 	 * 
-	 * @param rule
+	 * @param occur
 	 * @param map
 	 * @return
 	 */
-	private double getProOfBackOff(OccurenceCollins rule, HashMap<OccurenceCollins, AmountAndSort> map, String type)
+	private double getProbOfBackOff(OccurenceCollins occur, HashMap<OccurenceCollins, RuleAmountsInfo> map, String type)
 	{
 		double e1, e2, e3, w1, w2;
 		e3 = 0;
 
-		double[] pw1 = getProAndWeight(rule, map, type);
+		double[] pw1 = getProbAndWeight(occur, map, type);
 		e1 = pw1[1];
 		w1 = pw1[0];
 
-		rule.setHeadWord(null);
-		double[] pw2 = getProAndWeight(rule, map, type);
+		occur.setHeadWord(null);
+		double[] pw2 = getProbAndWeight(occur, map, type);
 		e2 = pw2[1];
 		w2 = pw2[0];
 
-		rule.setHeadPOS(null);
+		occur.setHeadPOS(null);
 		if (type.equals("2side"))
 		{
-			OccurenceSides rs = (OccurenceSides) rule;
-			double i = 0.5;
-			e3=getProForWord(rs,i);
+			OccurenceSides rs = (OccurenceSides) occur;
+			double i = 0.02;// 未登录词的平滑值
+			e3 = getProbForWord(rs, i);
 		}
 		else
 		{
-			double[] pw3 = getProAndWeight(rule, map, type);
+			double[] pw3 = getProbAndWeight(occur, map, type);
 			e3 = pw3[1];
 		}
 
@@ -316,104 +201,105 @@ public class LexPCFG
 
 		return w1 * e1 + (1 - w1) * (w2 * e2 + (1 - w2) * e3);
 	}
-    /**
-     *   
-     * @return
-     */
-	private double getProForWord(OccurenceSides rs,double count) {
-		double e3=0;
-		WordAndPOS wop = new WordAndPOS(rs.getSideHeadWord(), rs.getSideHeadPOS());
+
+	/**
+	 * 
+	 * @return
+	 */
+	private double getProbForWord(OccurenceSides rs, double count)
+	{
+		double e3 = 0;
+		WordPOS wop = new WordPOS(rs.getSideHeadWord(), rs.getSideHeadPOS());
 		if (wordMap.keySet().contains(wop))
-		{
 			count = wordMap.get(wop);
-		}
-		if (wordMap.containsKey(new WordAndPOS(null, rs.getSideHeadPOS())))
-		{
-			e3 = count / wordMap.get(new WordAndPOS(null, rs.getSideHeadPOS()));
-		}
-		return e3;	
+		if (wordMap.containsKey(new WordPOS(null, rs.getSideHeadPOS())))
+			e3 = count / wordMap.get(new WordPOS(null, rs.getSideHeadPOS()));
+
+		return e3;
 	}
+
 	/**
 	 * 得到某个回退模型的概率和权重
 	 * 
 	 * @return
 	 */
-	private double[] getProAndWeight(OccurenceCollins rhcg, HashMap<OccurenceCollins, AmountAndSort> map, String type)
+	private double[] getProbAndWeight(OccurenceCollins occur, HashMap<OccurenceCollins, RuleAmountsInfo> map, String type)
 	{
 		int x, u, y;
 		double[] pw = new double[2];
 		y = 0;
-		if (map.get(rhcg) == null)
+		if (map.get(occur) == null)
 		{
-			// pw[0] = 0;
 			pw[1] = 0;
 		}
 		else
 		{
-			x = map.get(rhcg).getAmount();
+			x = map.get(occur).getAmount();
 			switch (type)
 			{
 			case "head":
-				OccurenceHeadChild rhcg1 = (OccurenceHeadChild) rhcg;
-				rhcg1 = new OccurenceHeadChild(null, rhcg1.getParentLabel(), rhcg1.getHeadPOS(),
-						rhcg1.getHeadWord());
+				OccurenceHeadChild rhcg1 = (OccurenceHeadChild) occur;
+				rhcg1 = new OccurenceHeadChild(null, rhcg1.getParentLabel(), rhcg1.getHeadPOS(), rhcg1.getHeadWord());
 				y = map.get(rhcg1).getAmount();
-				u = map.get(rhcg1).getSort();
+				u = map.get(rhcg1).getSubtypeAmount();
 				break;
+				
 			case "1side":
-				OccurenceSides rsg1 = (OccurenceSides) rhcg;
+				OccurenceSides rsg1 = (OccurenceSides) occur;
 				rsg1 = new OccurenceSides(rsg1.getHeadLabel(), rsg1.getParentLabel(), rsg1.getHeadPOS(),
-						rsg1.getHeadWord(), rsg1.getDirection(), null, null, rsg1.getSideHeadWord(), rsg1.getCoor(),
-						rsg1.getPu(), rsg1.getDistance());
+						rsg1.getHeadWord(), rsg1.getDirection(), null, null, rsg1.getSideHeadWord(), rsg1.isCoor(),
+						rsg1.isPu(), rsg1.getDistance());
 				y = map.get(rsg1).getAmount();
-				u = map.get(rsg1).getSort();
+				u = map.get(rsg1).getSubtypeAmount();
 				break;
+				
 			case "2side":
-				OccurenceSides rsg2 = (OccurenceSides) rhcg;
+				OccurenceSides rsg2 = (OccurenceSides) occur;
 				rsg2 = new OccurenceSides(rsg2.getHeadLabel(), rsg2.getParentLabel(), rsg2.getHeadPOS(),
 						rsg2.getHeadWord(), rsg2.getDirection(), rsg2.getSideLabel(), rsg2.getSideHeadPOS(), null,
-						rsg2.getCoor(), rsg2.getPu(), rsg2.getDistance());
+						rsg2.isCoor(), rsg2.isPu(), rsg2.getDistance());
 
 				// 因为此处统计的次数为1side的分子和2side的分母，故统计了两次，所以此处需要乘以0.5
 				y = map.get(rsg2).getAmount() * 1 / 2;
-				u = map.get(rsg2).getSort();
+				u = map.get(rsg2).getSubtypeAmount();
 				break;
+				
 			case "stop":
 				y = 0;
-				OccurenceStop rsg3 = (OccurenceStop) rhcg;
+				OccurenceStop rsg3 = (OccurenceStop) occur;
 				rsg3 = new OccurenceStop(rsg3.getHeadLabel(), rsg3.getParentLabel(), rsg3.getHeadPOS(),
 						rsg3.getHeadWord(), rsg3.getDirection(), true, rsg3.getDistance());
 				if (map.containsKey(rsg3))
-				{
 					y += map.get(rsg3).getAmount();
-				}
+
 				rsg3.setStop(false);
+				// 加第二次是因为stop只有两个子类，true和false
 				if (map.containsKey(rsg3))
-				{
 					y += map.get(rsg3).getAmount();
-				}
+
 				u = 2;
 				break;
+				
 			case "special":
-				OccurenceSpecialCase rsg4 = (OccurenceSpecialCase) rhcg;
-				rsg4 = new OccurenceSpecialCase(rsg4.getParentLabel(), null, null, rsg4.getLeftLabel(), rsg4.getRightLabel(),
-						rsg4.getLheadWord(), rsg4.getRheadWord(), rsg4.getLheadPOS(), rsg4.getRheadPOS());
+				OccurenceSpecialCase rsg4 = (OccurenceSpecialCase) occur;
+				rsg4 = new OccurenceSpecialCase(rsg4.getParentLabel(), null, null, rsg4.getLeftLabel(),
+						rsg4.getRightLabel(), rsg4.getLheadWord(), rsg4.getRheadWord(), rsg4.getLheadPOS(),
+						rsg4.getRheadPOS());
 				y = map.get(rsg4).getAmount();
-				u = map.get(rsg4).getSort();
+				u = map.get(rsg4).getSubtypeAmount();
 				break;
+				
 			default:
 				y = 0;
 				u = 0;
 			}
+			
 			// 若果分母为零，则回退模型的权重值位零
 			if (y == 0)
-			{
 				pw[0] = 0;
-			}
 			else
-			{
 				pw[0] = 1.0 * y / (y + 5 * u);
-			}
+
 			pw[1] = 1.0 * x / y;
 		}
 		return pw;
@@ -429,19 +315,19 @@ public class LexPCFG
 		StartSymbol = startSymbol;
 	}
 
-	public HashMap<WordAndPOS, Integer> getWordMap()
+	public int getPOS2WordAmount(WordPOS pw)
 	{
-		return wordMap;
+		return wordMap.get(pw);
 	}
 
-	public void setWordMap(HashMap<WordAndPOS, Integer> wordMap)
+	public void setWordMap(HashMap<WordPOS, Integer> wordMap)
 	{
 		this.wordMap = wordMap;
 	}
 
-	public HashMap<String, HashSet<String>> getPosesOfWord()
+	public HashSet<String> getPosSetOfWord(String string)
 	{
-		return posesOfWord;
+		return posesOfWord.get(string);
 	}
 
 	public void setPosesOfWord(HashMap<String, HashSet<String>> posesOfWord)
@@ -449,19 +335,19 @@ public class LexPCFG
 		this.posesOfWord = posesOfWord;
 	}
 
-	public HashMap<OccurenceCollins, AmountAndSort> getHeadGenMap()
+	public RuleAmountsInfo getHeadGenRuleAmountsInfo(OccurenceCollins oc)
 	{
-		return headGenMap;
+		return headGenMap.get(oc);
 	}
 
-	public void setHeadGenMap(HashMap<OccurenceCollins, AmountAndSort> headGenMap)
+	public void setHeadGenMap(HashMap<OccurenceCollins, RuleAmountsInfo> headGenMap)
 	{
 		this.headGenMap = headGenMap;
 	}
 
-	public HashMap<OccurenceCollins, HashSet<String>> getParentList()
+	public HashSet<String> getParentList(OccurenceCollins oc)
 	{
-		return parentList;
+		return parentList.get(oc);
 	}
 
 	public void setParentList(HashMap<OccurenceCollins, HashSet<String>> parentList)
@@ -469,32 +355,32 @@ public class LexPCFG
 		this.parentList = parentList;
 	}
 
-	public HashMap<OccurenceCollins, AmountAndSort> getSidesGeneratorMap()
+	public RuleAmountsInfo getSidesGenRuleAmountsInfo(OccurenceCollins oc)
 	{
-		return sidesGenMap;
+		return sidesGenMap.get(oc);
 	}
 
-	public void setSidesGeneratorMap(HashMap<OccurenceCollins, AmountAndSort> sidesGenMap)
+	public void setSidesGeneratorMap(HashMap<OccurenceCollins, RuleAmountsInfo> sidesGenMap)
 	{
 		this.sidesGenMap = sidesGenMap;
 	}
 
-	public HashMap<OccurenceCollins, AmountAndSort> getStopGenMap()
+	public RuleAmountsInfo getStopGenRuleAmountsInfo(OccurenceCollins oc)
 	{
-		return stopGenMap;
+		return stopGenMap.get(oc);
 	}
 
-	public void setStopGenMap(HashMap<OccurenceCollins, AmountAndSort> stopGenMap)
+	public void setStopGenMap(HashMap<OccurenceCollins, RuleAmountsInfo> stopGenMap)
 	{
 		this.stopGenMap = stopGenMap;
 	}
 
-	public HashMap<OccurenceCollins, AmountAndSort> getSpecialGenMap()
+	public RuleAmountsInfo getSpecialGenRuleAmountsInfo(OccurenceCollins oc)
 	{
-		return specialGenMap;
+		return specialGenMap.get(oc);
 	}
 
-	public void setSpecialGenMap(HashMap<OccurenceCollins, AmountAndSort> specialGenMap)
+	public void setSpecialGenMap(HashMap<OccurenceCollins, RuleAmountsInfo> specialGenMap)
 	{
 		this.specialGenMap = specialGenMap;
 	}
@@ -518,12 +404,13 @@ public class LexPCFG
 			stb.append(itr1.next() + '\n');
 		}
 
-		Set<WordAndPOS> wap = wordMap.keySet();
+		Set<WordPOS> wap = wordMap.keySet();
 		stb.append("--POS-Word集--" + '\n');
-		for (WordAndPOS wap1 : wap)
+		for (WordPOS wap1 : wap)
 		{
 			stb.append(wap1.toString() + " " + wordMap.get(wap1) + '\n');
 		}
+
 		stb.append("--生成头结点的规则集--" + '\n');
 		Set<OccurenceCollins> set = headGenMap.keySet();
 		for (OccurenceCollins rule : set)
@@ -568,6 +455,7 @@ public class LexPCFG
 			OccurenceHeadChild rule1 = (OccurenceHeadChild) rule;
 			stb.append(rule1.toString() + " " + specialGenMap.get(rule1).toString() + '\n');
 		}
+		stb.append("完");
 		return stb.toString();
 	}
 
@@ -664,4 +552,164 @@ public class LexPCFG
 		return true;
 	}
 
+	/**
+	 * 将模型写出
+	 */
+	@Override
+	public void write(DataOutput out) throws IOException
+	{
+		out.writeUTF("--起始符--");
+		out.writeUTF(this.getStartSymbol());
+
+		Iterator<String> itr1 = posSet.iterator();
+		out.writeUTF("--词性标注集--");
+		while (itr1.hasNext())
+		{
+			out.writeUTF(itr1.next());
+		}
+
+		Set<WordPOS> wap = wordMap.keySet();
+		out.writeUTF("--POS-Word集--");
+		for (WordPOS wap1 : wap)
+		{
+			out.writeUTF(wap1.toString() + " " + wordMap.get(wap1));
+		}
+
+		out.writeUTF("--生成头结点的规则集--");
+		Set<OccurenceCollins> set = headGenMap.keySet();
+		for (OccurenceCollins rule : set)
+		{
+			OccurenceHeadChild rule1 = (OccurenceHeadChild) rule;
+			out.writeUTF(rule1.toString() + " " + headGenMap.get(rule1).toString());
+		}
+
+		out.writeUTF("--头结点向上延伸的标记集--");
+		Set<OccurenceCollins> set1 = parentList.keySet();
+		for (OccurenceCollins rule : set1)
+		{
+			OccurenceHeadChild rule1 = (OccurenceHeadChild) rule;
+			StringBuffer stb = new StringBuffer();
+			stb.append(rule1.toString() + " ");
+			for (String str : parentList.get(rule1))
+			{
+				stb.append(str.toString() + " ");
+			}
+			out.writeUTF(stb.toString());
+		}
+
+		out.writeUTF("--生成两侧孩子的规则集--");
+		Set<OccurenceCollins> set2 = sidesGenMap.keySet();
+		for (OccurenceCollins rule : set2)
+		{
+			OccurenceHeadChild rule1 = (OccurenceHeadChild) rule;
+			out.writeUTF(rule1.toString() + " " + sidesGenMap.get(rule1).toString());
+		}
+
+		out.writeUTF("--生成两侧Stop的规则集--");
+		Set<OccurenceCollins> set3 = stopGenMap.keySet();
+		for (OccurenceCollins rule : set3)
+		{
+			OccurenceHeadChild rule1 = (OccurenceHeadChild) rule;
+			out.writeUTF(rule1.toString() + " " + stopGenMap.get(rule1).toString());
+		}
+
+		out.writeUTF("--特殊规则集--");
+		Set<OccurenceCollins> set4 = specialGenMap.keySet();
+		for (OccurenceCollins rule : set4)
+		{
+			OccurenceHeadChild rule1 = (OccurenceHeadChild) rule;
+			out.writeUTF(rule1.toString() + " " + specialGenMap.get(rule1).toString());
+		}
+		out.writeUTF("完");
+	}
+
+	/**
+	 * 从流中读取模型
+	 */
+	@Override
+	public void read(DataInput in) throws IOException
+	{
+		String str = in.readUTF().trim();
+		if (str.equals("--起始符--"))
+		{
+			setStartSymbol(in.readUTF().trim());
+		}
+		in.readUTF();// 此处为"--词性标注集--"
+
+		str = in.readUTF().trim();
+		while (!str.equals("--POS-Word集--"))
+		{// 添加词性标注集
+			posSet.add(str);
+
+			str = in.readUTF().trim();
+		}
+
+		str = in.readUTF().trim();
+		while (!str.equals("--生成头结点的规则集--"))
+		{// POS-Word集
+			String[] strs = str.split(" ");
+			wordMap.put(new WordPOS(strs[0], strs[1]), Integer.parseInt(strs[2]));
+
+			str = in.readUTF().trim();
+		}
+
+		str = in.readUTF().trim();
+		while (!str.equals("--头结点向上延伸的标记集--"))
+		{// 生成头结点的规则集
+			String[] strs = str.split(" ");
+			int amount = Integer.parseInt(strs[strs.length - 2]);
+			int sort = Integer.parseInt(strs[strs.length - 1]);
+			headGenMap.put(new OccurenceHeadChild(strs), new RuleAmountsInfo(amount, sort));
+
+			str = in.readUTF().trim();
+		}
+
+		str = in.readUTF().trim();
+		while (!str.equals("--生成两侧孩子的规则集--"))
+		{// 头结点向上延伸的标记集
+			String[] strs = str.split(" ");
+			HashSet<String> set = new HashSet<String>();
+			for (int i = 4; i < strs.length; i++)
+			{
+				set.add(strs[i]);
+			}
+			parentList.put(new OccurenceHeadChild(strs), set);
+
+			str = in.readUTF().trim();
+		}
+
+		str = in.readUTF().trim();
+		while (!str.equals("--生成两侧Stop的规则集--"))
+		{// 生成两侧孩子的规则集
+			String[] strs = str.split(" ");
+			int amount = Integer.parseInt(strs[strs.length - 2]);
+			int subtypesAmount = Integer.parseInt(strs[strs.length - 1]);
+			sidesGenMap.put(new OccurenceSides(strs), new RuleAmountsInfo(amount, subtypesAmount));
+
+			str = in.readUTF().trim();
+		}
+
+		str = in.readUTF().trim();
+		while (!str.equals("--特殊规则集--"))
+		{// 生成两侧Stop的规则集
+			String[] strs = str.split(" ");
+			int amount = 1;
+			amount = Integer.parseInt(strs[strs.length - 2]);
+			int sort = Integer.parseInt(strs[strs.length - 1]);
+			stopGenMap.put(new OccurenceStop(strs), new RuleAmountsInfo(amount, sort));
+
+			str = in.readUTF().trim();
+		}
+
+		str = in.readUTF().trim();
+		while (!str.equals("完") && str != null)
+		{// 特殊规则集
+			String[] strs = str.split(" ");
+			int amount = Integer.parseInt(strs[strs.length - 2]);
+			int sort = Integer.parseInt(strs[strs.length - 1]);
+			specialGenMap.put(new OccurenceSpecialCase(strs), new RuleAmountsInfo(amount, sort));
+
+			str = in.readUTF().trim();
+		}
+	}
 }

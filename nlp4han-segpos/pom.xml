@@ -23,5 +23,10 @@
   		<artifactId>nlp4han-wordseg</artifactId>
   		<version>0.1</version>
   	</dependency>
+  	<dependency>
+  		<groupId>com.lc</groupId>
+  		<artifactId>nlp4han-pos</artifactId>
+  		<version>0.1</version>
+  	</dependency>
   </dependencies>
 </project>

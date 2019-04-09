@@ -7,9 +7,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Map.Entry;
+
+import org.nlp4han.coref.AnaphoraResult;
 
 import com.lc.nlp4han.constituent.TreeNode;
 import com.lc.nlp4han.constituent.TreeNodeUtil;
@@ -170,15 +169,14 @@ public abstract class AbstractEvaluation
 	 * @param trees
 	 * @return
 	 */
-	public static List<String> toStringFormat(Map<TreeNode, TreeNode> resolveResult, List<TreeNode> trees)
+	public static List<String> toStringFormat(List<AnaphoraResult> resolveResult, List<TreeNode> trees)
 	{
 		List<String> result = new ArrayList<String>();
-		Set<Entry<TreeNode, TreeNode>> es = resolveResult.entrySet();
 		
-		for (Entry<TreeNode, TreeNode> e : es)
+		for (AnaphoraResult ar : resolveResult)
 		{
-			TreeNode ponoun = e.getKey();
-			TreeNode antecedent = e.getValue();
+			TreeNode ponoun = ar.getPronNode();
+			TreeNode antecedent = ar.getAntecedentNode();
 			
 			TreeNode p1;
 			TreeNode a1;
@@ -189,7 +187,7 @@ public abstract class AbstractEvaluation
 			if (ts.size() > 1)
 			{
 				//p1 = TreeNodeUtil.getAllLeafNodes(TreeNodeUtil.getHead(ponoun, NPHeadRuleSetPTB.getNPRuleSet())).get(0);
-				a1 = TreeNodeUtil.getAllLeafNodes(TreeNodeUtil.getHead(antecedent, NPHeadRuleSetPTB.getNPRuleSet())).get(0);
+				a1 = TreeNodeUtil.getAllLeafNodes(TreeNodeUtil.getHead(antecedent)).get(0);
 			}
 			else
 			{

@@ -1,6 +1,7 @@
 package com.lc.nlp4han.clustering;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,70 +13,50 @@ public class TestGroup
 {
 	
 	@Test
-	public void testGetDistance()
-	{
-		Group g1 = new Group();
-		Group g2 = new Group();
-		DistanceCalculator dc = null;
-		
-		Double d = Group.getDistance(g1, g2, dc);
-	}
-	
-	@Test
-	public void testGetNearestGroup()
-	{
-		Group g = new Group();
-		List<Group> grps = new ArrayList<Group>();
-		DistanceCalculator dc = null;
-		
-		Group group = Group.getNearestGroup(g, grps, dc);
-	}
-	
-	@Test
 	public void testAddMember()
 	{
-		Group g1 = null;
-		Text t = null;
+		Group g1 = new Group();
+		Text t = new Text("aa");
 		g1.addMember(t);
+		
+		assertEquals(1, g1.size());
 	}
 	
 	@Test
 	public void testRemoveMember()
 	{
-		Group g1 = null;
-		Text t1 = null;
+		Text t1 = new Text("1", "aa");
+		Text t2 = new Text("2", "aa");
+		Text t3 = new Text("3", "aa");
+		List<Text> texts = new ArrayList<Text>();
+		texts.add(t1);
+		texts.add(t2);
+		texts.add(t3);
 		
-		g1.removeMember(t1);
-	}
-	
-	@Test
-	public void testUpdateCenter()
-	{
-		Group g1 = null;
-		g1.updateCenter();
+		Group g = new Group(texts);
+		
+		g.removeMember(t2);
+		
+		assertTrue(!g.containsText(t2));
+		assertTrue(g.containsText(t1));
 	}
 	
 	@Test
 	public void testMerge()
 	{
-		Group g1 = null;
-		Group g2 = null;
-		g1.merge(g2);
-	}
-	
-	@Test
-	public void testGetCenter()
-	{
-		Group g1 = null;
+		Text t1 = new Text("aa");
+		Text t2 = new Text("bb");
 		
-		Sample center = g1.getCenter();
-	}
-	
-	@Test
-	public void testGetMembers()
-	{
-		Group g1 = null;
-		List<Text> texts = g1.getMembers();
+		Group g1 = new Group();
+		g1.addMember(t1);
+		
+		Group g2 = new Group();
+		g2.addMember(t2);
+		
+		g1.merge(g2);
+		
+		assertEquals(2, g1.size());
+		assertTrue(g1.containsText(t2));
 	}
 	
 	@Test
@@ -114,7 +95,7 @@ public class TestGroup
 		
 		g.clear();
 		
-		assertEquals(0, g.getMembersNumber());
+		assertEquals(0, g.size());
 	}
 	
 }

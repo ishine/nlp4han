@@ -10,6 +10,7 @@ public class OccurenceStop extends OccurenceHeadChild
 {
 	private int direction = 0;// 终止符生成方向,左侧为1，右侧为2
 	private boolean stop;
+	
 	private Distance distance = null;
 
 	public OccurenceStop(String[] strs)
@@ -98,6 +99,14 @@ public class OccurenceStop extends OccurenceHeadChild
 	public String toString()
 	{
 		return super.toString() + " " + direction + " " + stop + " " + distance;
+	}
+
+	@Override
+	public String toReadableString()
+	{
+		return super.toReadableString() + ", dir=" + direction + ", stop=" + stop 
+				+ ", zerolen=" + distance.isAdjacency()
+				+ ", verb=" + distance.isCrossVerb();
 	}
 
 }

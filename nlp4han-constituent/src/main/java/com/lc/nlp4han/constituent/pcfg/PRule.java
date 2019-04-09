@@ -59,7 +59,7 @@ public class PRule extends RewriteRule implements Comparable<PRule>
 	 */
 	public PRule(RewriteRule rule, double pro)
 	{
-		super(rule.getLhs(), rule.getRhs());
+		super(rule.getLHS(), rule.getRHS());
 		this.prob = pro;
 	}
 

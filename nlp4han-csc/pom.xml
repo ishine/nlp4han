@@ -1,23 +1,24 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <groupId>com.lc</groupId>
-    <artifactId>nlp4han</artifactId>
-    <version>1.0-SNAPSHOT</version>
-  </parent>
-  <artifactId>nlp4han-csc</artifactId>
-  <version>0.1</version>
-  
-  <dependencies>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>com.lc</groupId>
+		<artifactId>nlp4han</artifactId>
+		<version>1.0-SNAPSHOT</version>
+	</parent>
+	<artifactId>nlp4han-csc</artifactId>
+	<version>0.1</version>
+
+	<dependencies>
 		<dependency>
-    		<groupId>tw.cheyingwu</groupId>
-    		<artifactId>CKIPClient</artifactId>
-    		<version>0.4.3</version>
-	</dependency>
+			<groupId>com.lc</groupId>
+			<artifactId>nlp4han-wordseg</artifactId>
+			<version>0.1</version>
+		</dependency>
 		<dependency>
 			<groupId>com.lc</groupId>
 			<artifactId>nlp4han-ml</artifactId>
 			<version>0.1</version>
 		</dependency>
-  </dependencies>
+	</dependencies>
 </project>

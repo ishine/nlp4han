@@ -84,8 +84,8 @@ public class Evaluation
 		
 		for (int i=0 ; i<actualResult.size() ; i++)				//算出TP+FP
 		{
-			if (actualResult.get(i).getMembersNumber()>1)
-				TP_FP += combine(actualResult.get(i).getMembersNumber(), 2);
+			if (actualResult.get(i).size()>1)
+				TP_FP += combine(actualResult.get(i).size(), 2);
 		}
 		
 		for (int i=0 ; i<sameClassTextNumberList.size() ; i++)			//算出TP
@@ -312,7 +312,7 @@ public class Evaluation
 			for (int j=0 ; j<tmp.length ; j++)
 			{
 				if (tmp[j]>0)
-					I += 1.0*tmp[j] / textNumber * log(1.0*textNumber*tmp[j]/actualResult.get(i).getMembersNumber()/d[j]);
+					I += 1.0*tmp[j] / textNumber * log(1.0*textNumber*tmp[j]/actualResult.get(i).size()/d[j]);
 			}
 		}
 		
@@ -321,7 +321,7 @@ public class Evaluation
 		for (int i=0 ; i<actualResult.size() ; i++)
 		{
 			Group tmp = actualResult.get(i);
-			H_OMEGA -= 1.0*tmp.getMembersNumber()/ textNumber*log(1.0*tmp.getMembersNumber()/ textNumber);
+			H_OMEGA -= 1.0*tmp.size()/ textNumber*log(1.0*tmp.size()/ textNumber);
 		}
 		
 		double H_C = 0; // 期望类别集合的信息熵

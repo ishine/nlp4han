@@ -1,9 +1,12 @@
 package com.lc.nlp4han.constituent;
 
+import java.io.DataInput;
+import java.io.DataInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import com.lc.nlp4han.constituent.pcfg.ConstituentParserCKYLoosePCNF;
+import com.lc.nlp4han.constituent.pcfg.ConstituentParserCKYPCNF;
 import com.lc.nlp4han.constituent.pcfg.PCFG;
 
 public class ParserFactory
@@ -25,12 +28,16 @@ public class ParserFactory
 		if (parser != null)
 			return parser;
 
-		String modelName = "com/lc/nlp4han/constituent/ctb8-lpcnf-utf8.model";
+		String modelName = "com/lc/nlp4han/constituent/ctb8-pcnf.model";
 
 		InputStream modelIn = ParserFactory.class.getClassLoader().getResourceAsStream(modelName);
-		String encoding = "UTF-8";
+//		String encoding = "UTF-8";
+		
+		DataInput in = new DataInputStream(modelIn);
+		PCFG pcnf = new PCFG();
+		pcnf.read(in);
 
-		PCFG grammar = new PCFG(modelIn, encoding);
+//		PCFG grammar = new PCFG(modelIn, encoding);
 		
 //		System.out.println(grammar.isCNF());
 //		System.out.println(grammar.isLooseCNF());
@@ -39,7 +46,7 @@ public class ParserFactory
 		boolean secondPrune = false;
 		boolean prior = false;
 
-		parser = new ConstituentParserCKYLoosePCNF(grammar, pruneThreshold, secondPrune, prior);
+		parser = new ConstituentParserCKYPCNF(pcnf, pruneThreshold, secondPrune, prior);
 
 		return parser;
 	}

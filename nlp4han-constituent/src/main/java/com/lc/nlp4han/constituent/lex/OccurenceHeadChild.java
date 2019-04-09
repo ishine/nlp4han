@@ -1,27 +1,28 @@
 package com.lc.nlp4han.constituent.lex;
+
 /**
- * 用于存储生成头结点的数据
- * 在解析过程还可用于向上生成单位规则
+ * 用于存储生成头结点的数据 在解析过程还可用于向上生成单位规则
+ * 
  * @author qyl
  *
  */
-public class OccurenceHeadChild  extends OccurenceCollins
+public class OccurenceHeadChild extends OccurenceCollins
 {
 
-	private String headLabel = null;//中心节点标记
-	
+	private String headLabel = null;// 中心节点标记
+
 	public OccurenceHeadChild(String[] strs)
 	{
 		super(strs[0], strs[1], strs[2]);
-		this.headLabel=strs[3];
+		this.headLabel = strs[3];
 	}
 
-	public OccurenceHeadChild(String headLabel,String parentLabel, String headPOS, String headWord)
+	public OccurenceHeadChild(String headLabel, String parentLabel, String headPOS, String headWord)
 	{
 		super(parentLabel, headPOS, headWord);
-        this.headLabel=headLabel;
+		this.headLabel = headLabel;
 	}
-	
+
 	public String getHeadLabel()
 	{
 		return headLabel;
@@ -64,8 +65,14 @@ public class OccurenceHeadChild  extends OccurenceCollins
 	@Override
 	public String toString()
 	{
-		return super.toString()+" "+headLabel;
+		return super.toString() + " " + headLabel;
 	}
-    
+
+	@Override
+	public String toReadableString()
+	{
+		return super.toReadableString() + ", H=" + headLabel;
+	}
+
 	
 }

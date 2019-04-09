@@ -35,6 +35,7 @@ public class WordSegAndPosCrossValidationTool
         int folds = 10;
         File corpusFile = null;
         String encoding = "UTF-8";
+        String algType = "MAXENT";
         for (int i = 0; i < args.length; i++)
         {
             if (args[i].equals("-data"))
@@ -62,11 +63,17 @@ public class WordSegAndPosCrossValidationTool
                 folds = Integer.parseInt(args[i + 1]);
                 i++;
             }
+            else if (args[i].equals("-type"))
+            {
+                algType = args[i + 1];
+                i++;
+            }
         }
 
         TrainingParameters params = TrainingParameters.defaultParams();
         params.put(TrainingParameters.CUTOFF_PARAM, Integer.toString(cutoff));
         params.put(TrainingParameters.ITERATIONS_PARAM, Integer.toString(iters));
+        params.put(TrainingParameters.ALGORITHM_PARAM, algType);
         
         WordSegAndPosCrossValidation crossValidator = new WordSegAndPosCrossValidation(params);
 

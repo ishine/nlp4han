@@ -15,7 +15,7 @@ import com.lc.nlp4han.ml.ngram.utils.NGramModelEntry;
 
 /**
  *<ul>
- *<li>Description: 从文件读取N元模型的抽象类，实现读取重构模型的方法
+ *<li>Description: 从文件读取N元模型的抽象类，实现读取重构模型的方法1
  *<li>Company: HUST
  *<li>@author Sonly
  *<li>Date: 2017年7月15日

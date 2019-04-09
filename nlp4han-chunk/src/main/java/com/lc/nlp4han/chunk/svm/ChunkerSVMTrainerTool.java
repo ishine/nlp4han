@@ -11,20 +11,12 @@ import com.lc.nlp4han.chunk.svm.liblinear.InvalidInputDataException;
 public class ChunkerSVMTrainerTool
 {
 	private static final String USAGE = "Usage: ChunkAnalysisSVMTrainerTool [options] -data training_set_file\n"
-			+ "options:\n" 
-			+ "-encoding encoding : set encoding\n" 
-			+ "-label label : such as BIOE, BIOES\n"
-			+ "-model model_path : set the model save path\n"
-			+ "-s svm_type : set type of SVM (default 0)\n" 
-			+ "	0 -- C-SVC		(multi-class classification)\n"
-			+ "	1 -- nu-SVC		(multi-class classification)\n" 
-			+ "	2 -- one-class SVM\n"
-			+ "	3 -- epsilon-SVR	(regression)\n" 
-			+ "	4 -- nu-SVR		(regression)\n"
-			+ "-t kernel_type : set type of kernel function (default 2)\n" 
-			+ "	0 -- linear: u'*v\n"
-			+ "	1 -- polynomial: (gamma*u'*v + coef0)^degree\n" 
-			+ "	2 -- radial basis function: exp(-gamma*|u-v|^2)\n"
+			+ "options:\n" + "-encoding encoding : set encoding\n" + "-label label : such as BIOE, BIOES\n"
+			+ "-model model_path : set the model save path\n" + "-s svm_type : set type of SVM (default 0)\n"
+			+ "	0 -- C-SVC		(multi-class classification)\n" + "	1 -- nu-SVC		(multi-class classification)\n"
+			+ "	2 -- one-class SVM\n" + "	3 -- epsilon-SVR	(regression)\n" + "	4 -- nu-SVR		(regression)\n"
+			+ "-t kernel_type : set type of kernel function (default 2)\n" + "	0 -- linear: u'*v\n"
+			+ "	1 -- polynomial: (gamma*u'*v + coef0)^degree\n" + "	2 -- radial basis function: exp(-gamma*|u-v|^2)\n"
 			+ "	3 -- sigmoid: tanh(gamma*u'*v + coef0)\n"
 			+ "	4 -- precomputed kernel (kernel values in training_set_file)\n"
 			+ "-d degree : set degree in kernel function (default 3)\n"
@@ -43,21 +35,20 @@ public class ChunkerSVMTrainerTool
 	public static void main(String[] args) throws IOException, InvalidInputDataException
 	{
 		long startTime = System.currentTimeMillis();
-		Map<String, String[]> as = decompositionArgs(args);
+		Map<String, String[]> as = decomposeArgs(args);
 
 		String[] inputArgs = as.get("input");
-		SVMStandardInput ssi = SVMStandardInput.run(inputArgs);
+		
+		// 将语料转换成svm格式，并将转换后的样本写到文件
+		SVMFeatureLabelInfo ci = SVMSampleUtil.convert(inputArgs);
 
-		List<Integer> numberOfClassification = ssi.getNumberOfClassification();
-		System.out.println("类别总数：" + numberOfClassification.size());
-		long total = 0;
-		for (int n : numberOfClassification)
-			total += n;
-		System.out.println("样本总数：" + total);
-		System.out.println("特征总数：" + ssi.getFeatures().size());
+		System.out.println("类别总数：" + ci.getClassesNumber());
+		System.out.println("样本总数：" + ci.getSamplesNumber());
+		System.out.println("特征总数：" + ci.getFeaturesNumber());
 
 		String[] trainArgs = as.get("train");
 
+		// 训练并写出模型
 		svm_train.main(trainArgs);
 
 		long endTime = System.currentTimeMillis();
@@ -67,7 +58,7 @@ public class ChunkerSVMTrainerTool
 	/**
 	 * 分解参数
 	 */
-	private static Map<String, String[]> decompositionArgs(String[] args)
+	private static Map<String, String[]> decomposeArgs(String[] args)
 	{
 		Map<String, String[]> result = new HashMap<>();
 		List<String> standardInputArgs = new ArrayList<String>();
@@ -84,7 +75,7 @@ public class ChunkerSVMTrainerTool
 			case "-data":
 				standardInputArgs.add(args[i]);
 				standardInputArgs.add(args[i + 1]);
-				dataPath = args[i+1];
+				dataPath = args[i + 1];
 				i++;
 				break;
 			case "-encoding":
@@ -162,7 +153,7 @@ public class ChunkerSVMTrainerTool
 				trainArgs.add(args[i]);
 				break;
 			case "-model":
-				modelPath = args[i+1];
+				modelPath = args[i + 1];
 				i++;
 				break;
 			default:
@@ -180,7 +171,7 @@ public class ChunkerSVMTrainerTool
 
 			}
 		}
-		
+
 		if (dataPath == null)
 		{
 			System.err.println(USAGE);

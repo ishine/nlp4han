@@ -1,15 +1,14 @@
 package com.lc.nlp4han.constituent.lex;
 
-import java.io.BufferedWriter;
+import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 
+/**
+ * 提取LexGrammar的命令行应用程序
+ */
 public class LexGrammarExtractorTool
 {
-	/**
-	 * 提取LexGrammar的命令行应用程序
-	 */
 	public static void main(String[] args) throws IOException
 	{
 		if (args.length < 1)
@@ -37,23 +36,27 @@ public class LexGrammarExtractorTool
 				i++;
 			}
 		}
+
 		if (topath != null)
 		{
 			ExtractLexGrammarToFile(frompath, topath, encoding);
 		}
 		else
 		{
-				System.out.println(new LexGrammarExtractor().extractGrammar(frompath, encoding).toString());
+			System.out.println(new LexGrammarExtractor().extractGrammar(frompath, encoding).toString());
 		}
 	}
+
 	/**
 	 * 从树库中提取文法，然后存入文件指定中
 	 */
-	private static void ExtractLexGrammarToFile(String fromPath, String toPath, String inCoding)
-			throws IOException
+	private static void ExtractLexGrammarToFile(String fromPath, String toPath, String inCoding) throws IOException
 	{
-		BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(toPath), inCoding));
-		bw.append(new LexGrammarExtractor().extractGrammar(fromPath, inCoding).toString());
-		bw.close();
+//		LexPCFGModelIOUtil.writeModel(new LexGrammarExtractor().extractGrammar(fromPath, inCoding), toPath);
+
+		DataOutputStream out = new DataOutputStream(new FileOutputStream(toPath));
+
+		LexPCFG pcfg = new LexGrammarExtractor().extractGrammar(fromPath, inCoding);
+		pcfg.write(out);
 	}
 }

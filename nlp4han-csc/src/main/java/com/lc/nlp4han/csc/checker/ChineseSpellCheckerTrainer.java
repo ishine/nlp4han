@@ -30,13 +30,13 @@ import com.lc.nlp4han.csc.model.SIMDNoisyChannelModelBasedBigram;
 import com.lc.nlp4han.csc.model.SIMDNoisyChannelModelBasedCharacter;
 import com.lc.nlp4han.csc.model.SIMDNoisyChannelModelBasedCharacterAndBigram;
 import com.lc.nlp4han.csc.model.SIMDNoisyChannelModelBasedCharacterInBalance;
-import com.lc.nlp4han.csc.ngram.HustNGramModel;
+import com.lc.nlp4han.csc.ngram.NGramModelImpl;
 import com.lc.nlp4han.csc.ngram.NGramModel;
 import com.lc.nlp4han.csc.util.ConfusionSet;
 import com.lc.nlp4han.csc.util.Dictionary;
 import com.lc.nlp4han.csc.util.CommonUtils;
 import com.lc.nlp4han.csc.wordseg.AbstractWordSegment;
-import com.lc.nlp4han.csc.wordseg.CKIPWordSegment;
+import com.lc.nlp4han.csc.wordseg.WordSegmentNLP4Han;
 import com.lc.nlp4han.ml.ngram.model.KneserNeyLanguageModelTrainer;
 
 /**
@@ -99,63 +99,63 @@ public class ChineseSpellCheckerTrainer {
 		
 		switch (method.toLowerCase()) {
 		case "ds":
-			wordSegment = new CKIPWordSegment();
+			wordSegment = new WordSegmentNLP4Han();
 			noisyChannelModel = new DoubleStageNoisyChannelModel(dictionary, nGramModel, confusionSet, wordSegment);
 			break;
 		case "dsc":
-			wordSegment = new CKIPWordSegment();
+			wordSegment = new WordSegmentNLP4Han();
 			noisyChannelModel = new DoubleStageNoisyChannelModelBasedCharacter(dictionary, nGramModel, confusionSet, wordSegment);
 			break;
 		case "dscib":
-			wordSegment = new CKIPWordSegment();
+			wordSegment = new WordSegmentNLP4Han();
 			noisyChannelModel = new DoubleStageNoisyChannelModelBasedCharacterInBalance(dictionary, nGramModel, confusionSet, wordSegment, charType);
 			break;
 		case "dsb":
-			wordSegment = new CKIPWordSegment();
+			wordSegment = new WordSegmentNLP4Han();
 			noisyChannelModel = new DoubleStageNoisyChannelModelBasedCharacterAndBigram(dictionary, nGramModel, confusionSet, wordSegment);
 			break;
 		case "dscb":
-			wordSegment = new CKIPWordSegment();
+			wordSegment = new WordSegmentNLP4Han();
 			noisyChannelModel = new DoubleStageNoisyChannelModelBasedBigram(dictionary, nGramModel, confusionSet, wordSegment);
 			break;
 		case "hust":
-			wordSegment = new CKIPWordSegment();
+			wordSegment = new WordSegmentNLP4Han();
 			noisyChannelModel = new HUSTNoisyChannelModel(dictionary, nGramModel, confusionSet, wordSegment);
 			break;
 		case "hustc":
-			wordSegment = new CKIPWordSegment();
+			wordSegment = new WordSegmentNLP4Han();
 			noisyChannelModel = new HUSTNoisyChannelModelBasedCharacter(dictionary, nGramModel, confusionSet, wordSegment);
 			break;
 		case "hustcib":
-			wordSegment = new CKIPWordSegment();
+			wordSegment = new WordSegmentNLP4Han();
 			noisyChannelModel = new HUSTNoisyChannelModelBasedCharacterInBalance(dictionary, nGramModel, confusionSet, wordSegment, charType);
 			break;
 		case "hustb":
-			wordSegment = new CKIPWordSegment();
+			wordSegment = new WordSegmentNLP4Han();
 			noisyChannelModel = new HUSTNoisyChannelModelBasedBigram(dictionary, nGramModel, confusionSet, wordSegment);
 			break;
 		case "hustcb":
-			wordSegment = new CKIPWordSegment();
+			wordSegment = new WordSegmentNLP4Han();
 			noisyChannelModel = new HUSTNoisyChannelModelBasedCharacterAndBigram(dictionary, nGramModel, confusionSet, wordSegment);
 			break;
 		case "bcws":
-			wordSegment = new CKIPWordSegment();
+			wordSegment = new WordSegmentNLP4Han();
 			noisyChannelModel = new BCWSNoisyChannelModel(nGramModel, confusionSet, wordSegment);
 			break;
 		case "bcwsc":
-			wordSegment = new CKIPWordSegment();
+			wordSegment = new WordSegmentNLP4Han();
 			noisyChannelModel = new BCWSNoisyChannelModelBasedCharacter(dictionary, nGramModel, confusionSet, wordSegment);
 			break;
 		case "bcwscib":
-			wordSegment = new CKIPWordSegment();
+			wordSegment = new WordSegmentNLP4Han();
 			noisyChannelModel = new BCWSNoisyChannelModelBasedCharacterInBalance(nGramModel, confusionSet, wordSegment, charType);
 			break;
 		case "bcwsb":
-			wordSegment = new CKIPWordSegment();
+			wordSegment = new WordSegmentNLP4Han();
 			noisyChannelModel = new BCWSNoisyChannelModelBasedBigram(dictionary, nGramModel, confusionSet, wordSegment);
 			break;
 		case "bcwscb":
-			wordSegment = new CKIPWordSegment();
+			wordSegment = new WordSegmentNLP4Han();
 			noisyChannelModel = new BCWSNoisyChannelModelBasedCharacterAndBigram(dictionary, nGramModel, confusionSet, wordSegment);
 			break;
 		case "simd":
@@ -165,7 +165,7 @@ public class ChineseSpellCheckerTrainer {
 			noisyChannelModel = new SIMDNoisyChannelModelBasedCharacter(dictionary, nGramModel, confusionSet);
 			break;
 		case "simdcib":
-			wordSegment = new CKIPWordSegment();
+			wordSegment = new WordSegmentNLP4Han();
 			noisyChannelModel = new SIMDNoisyChannelModelBasedCharacterInBalance(dictionary, nGramModel, confusionSet, charType);
 			break;
 		case "simdb":
@@ -218,11 +218,11 @@ public class ChineseSpellCheckerTrainer {
 	 * @return			ngram模型
 	 * @throws IOException	
 	 */
-	public HustNGramModel constructLM(String corpus, String encoding, int n) throws IOException {
+	public NGramModelImpl constructLM(String corpus, String encoding, int n) throws IOException {
 		StringGramSentenceStream gramSentenceStream = new StringGramSentenceStream(corpus, encoding);
 		KneserNeyLanguageModelTrainer trainer = new KneserNeyLanguageModelTrainer(gramSentenceStream, n);
 
-		return new HustNGramModel(trainer.trainModel());
+		return new NGramModelImpl(trainer.trainModel());
 	}
 
 	/**
